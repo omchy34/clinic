@@ -8,8 +8,35 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
+  id        String   @id   
+  name      String
   email     String   @unique
-  name      String?
+  phone     String?
+  clinic    Clinic?
+  bookings  Booking[]
   createdAt DateTime @default(now())
 }
+
+model Clinic {
+  id         String   @id @default(cuid())
+  name       String
+  address    String
+  city       String
+  phone      String
+  isApproved Boolean  @default(false)
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  doctors    Doctor[]
+  bookings   Booking[]
+  createdAt  DateTime @default(now())
+}
+
+
+
+// model Booking{
+
+// }
+
+// model Doctors{
+
+// }
