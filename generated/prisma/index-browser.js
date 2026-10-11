@@ -122,8 +122,54 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 
 exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
-  email: 'email',
   name: 'name',
+  email: 'email',
+  phone: 'phone',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ClinicScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  address: 'address',
+  city: 'city',
+  phone: 'phone',
+  isApproved: 'isApproved',
+  userId: 'userId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SpecialtyScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  slug: 'slug',
+  keywords: 'keywords'
+};
+
+exports.Prisma.DoctorScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  clinicId: 'clinicId',
+  specialtyId: 'specialtyId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.TimeSlotScalarFieldEnum = {
+  id: 'id',
+  doctorId: 'doctorId',
+  date: 'date',
+  startTime: 'startTime',
+  endTime: 'endTime',
+  maxTokens: 'maxTokens'
+};
+
+exports.Prisma.BookingScalarFieldEnum = {
+  id: 'id',
+  tokenNumber: 'tokenNumber',
+  status: 'status',
+  userId: 'userId',
+  clinicId: 'clinicId',
+  slotId: 'slotId',
   createdAt: 'createdAt'
 };
 
@@ -141,10 +187,19 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
-
+exports.BookingStatus = exports.$Enums.BookingStatus = {
+  PENDING: 'PENDING',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
+};
 
 exports.Prisma.ModelName = {
-  User: 'User'
+  User: 'User',
+  Clinic: 'Clinic',
+  Specialty: 'Specialty',
+  Doctor: 'Doctor',
+  TimeSlot: 'TimeSlot',
+  Booking: 'Booking'
 };
 
 /**

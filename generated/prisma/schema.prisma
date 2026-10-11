@@ -7,9 +7,83 @@ datasource db {
   provider = "postgresql"
 }
 
+enum BookingStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
+  id        String    @id // Clerk ki user id (Inngest webhook se aayegi)
+  name      String
+  email     String    @unique
+  phone     String?
+  clinic    Clinic?
+  bookings  Booking[]
+  createdAt DateTime  @default(now())
+}
+
+model Clinic {
+  id         String    @id @default(cuid())
+  name       String
+  address    String
+  city       String
+  phone      String
+  isApproved Boolean   @default(false)
+  userId     String    @unique
+  user       User      @relation(fields: [userId], references: [id])
+  doctors    Doctor[]
+  bookings   Booking[]
+  createdAt  DateTime  @default(now())
+}
+
+model Specialty {
+  id       String   @id @default(cuid())
+  name     String   @unique
+  slug     String   @unique
+  keywords String[]
+  doctors  Doctor[]
+}
+
+model Doctor {
+  id          String     @id @default(cuid())
+  name        String
+  clinicId    String
+  clinic      Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  specialtyId String
+  specialty   Specialty  @relation(fields: [specialtyId], references: [id])
+  slots       TimeSlot[]
+  createdAt   DateTime   @default(now())
+
+  @@index([clinicId])
+}
+
+model TimeSlot {
+  id        String    @id @default(cuid())
+  doctorId  String
+  doctor    Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  date      DateTime
+  startTime String // "10:00"
+  endTime   String // "13:00"
+  maxTokens Int       @default(20)
+  bookings  Booking[]
+
+  @@index([doctorId, date])
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  tokenNumber Int
+  status      BookingStatus @default(PENDING)
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  clinicId    String
+  clinic      Clinic        @relation(fields: [clinicId], references: [id])
+  slotId      String
+  slot        TimeSlot      @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+
+  @@unique([slotId, tokenNumber])
+  @@index([userId])
+  @@index([clinicId, status])
 }
