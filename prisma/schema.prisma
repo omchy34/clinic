@@ -19,7 +19,6 @@ model User {
   id        String    @id // Clerk ki user id (Inngest webhook se aayegi)
   name      String
   email     String    @unique
-  phone     String?
   image     String?
   clinic    Clinic?
   bookings  Booking[]
