@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import axios from "axios";
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { Bricolage_Grotesque } from "next/font/google";
@@ -15,6 +16,9 @@ const hint = "mt-1.5 text-xs text-[#5B726C]";
 const errorText = "mt-1.5 text-xs text-[#B42318]";
 const secondaryBtn =
   "cursor-pointer rounded-md border border-[#C9D6D2] bg-white px-3.5 py-2 text-sm font-medium text-[#14302B] hover:bg-[#F3F6F5] focus-within:ring-2 focus-within:ring-[#F5B82E]";
+
+// Same path as your route file: app/api/user/create/route.ts
+const ENDPOINT = "/api/user/create";
 
 const TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_PHOTOS = 8;
@@ -31,12 +35,6 @@ function check(file: File, maxMb: number): string | null {
   if (!TYPES.includes(file.type)) return "Only JPG, PNG or WebP images are allowed.";
   if (file.size > maxMb * 1024 * 1024) return `Each file must be under ${maxMb} MB.`;
   return null;
-}
-
-// TODO: replace with your real storage upload (Cloudinary, UploadThing, etc).
-// It must return the public URL of the uploaded file.
-async function uploadImage(file: File): Promise<string> {
-  return URL.createObjectURL(file); // temporary, only for testing
 }
 
 export default function Page() {
@@ -113,16 +111,29 @@ export default function Page() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submitting) return;
     setSubmitError(null);
     setSubmitting(true);
+
     try {
-      const data = Object.fromEntries(new FormData(e.currentTarget));
-      const logoUrl = logo ? await uploadImage(logo.file) : null;
-      const clinicImage = await Promise.all(photos.map((p) => uploadImage(p.file)));
-      console.log({ ...data, logo: logoUrl, clinicImage }); // TODO: call your server action here
+      const body = new FormData(e.currentTarget);
+      if (logo) body.append("logo", logo.file);
+      photos.forEach((p) => body.append("clinicImage", p.file));
+
+      await axios.post(ENDPOINT, body);
       setSubmitted(true);
-    } catch {
-      setSubmitError("Upload failed. Check your connection and try again.");
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 413) {
+          setSubmitError("The files are too large. Try fewer or smaller photos.");
+        } else if (err.response) {
+          setSubmitError(err.response.data?.message ?? "Something went wrong. Please try again.");
+        } else {
+          setSubmitError("Network error. Check your connection and try again.");
+        }
+      } else {
+        setSubmitError("Something went wrong. Please try again.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -330,7 +341,7 @@ export default function Page() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {photos.map((p, i) => (
                 <div key={p.id}>
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-md bg-[#E8EFED]">
+                  <div className="relative aspect-4/3 overflow-hidden rounded-md bg-[#E8EFED]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={p.url}
@@ -368,7 +379,7 @@ export default function Page() {
               ))}
 
               {photos.length < MAX_PHOTOS && (
-                <label className="flex aspect-[4/3] cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-[#C9D6D2] px-2 text-center text-sm font-medium text-[#14302B] hover:bg-[#F3F6F5] focus-within:ring-2 focus-within:ring-[#F5B82E]">
+                <label className="flex aspect-4/3 cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-[#C9D6D2] px-2 text-center text-sm font-medium text-[#14302B] hover:bg-[#F3F6F5] focus-within:ring-2 focus-within:ring-[#F5B82E]">
                   <input
                     type="file"
                     accept={TYPES.join(",")}
