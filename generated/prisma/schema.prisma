@@ -11,6 +11,7 @@ enum BookingStatus {
   PENDING
   COMPLETED
   CANCELLED
+  SKIPPED
 }
 
 model User {
@@ -18,23 +19,27 @@ model User {
   name      String
   email     String    @unique
   phone     String?
+  image     String?
   clinic    Clinic?
   bookings  Booking[]
   createdAt DateTime  @default(now())
 }
 
 model Clinic {
-  id         String    @id @default(cuid())
-  name       String
-  address    String
-  city       String
-  phone      String
-  isApproved Boolean   @default(false)
-  userId     String    @unique
-  user       User      @relation(fields: [userId], references: [id])
-  doctors    Doctor[]
-  bookings   Booking[]
-  createdAt  DateTime  @default(now())
+  id          String    @id @default(cuid())
+  name        String
+  address     String
+  city        String
+  email       String
+  phone       String
+  logo        String?
+  clinicImage String[]  @default([])
+  isApproved  Boolean   @default(false)
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id])
+  doctors     Doctor[]
+  bookings    Booking[]
+  createdAt   DateTime  @default(now())
 }
 
 model Specialty {
@@ -48,6 +53,8 @@ model Specialty {
 model Doctor {
   id          String     @id @default(cuid())
   name        String
+  image       String?
+  description String?
   clinicId    String
   clinic      Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   specialtyId String
@@ -59,15 +66,17 @@ model Doctor {
 }
 
 model TimeSlot {
-  id        String    @id @default(cuid())
-  doctorId  String
-  doctor    Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  date      DateTime
-  startTime String // "10:00"
-  endTime   String // "13:00"
-  maxTokens Int       @default(20)
-  bookings  Booking[]
+  id           String    @id @default(cuid())
+  doctorId     String
+  doctor       Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  date         DateTime  @db.Date
+  startTime    String // "10:00"
+  endTime      String // "13:00"
+  tokenMinutes Int       @default(15)
+  maxTokens    Int
+  bookings     Booking[]
 
+  @@unique([doctorId, date, startTime])
   @@index([doctorId, date])
 }
 

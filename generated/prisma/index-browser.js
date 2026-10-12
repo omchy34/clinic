@@ -125,6 +125,7 @@ exports.Prisma.UserScalarFieldEnum = {
   name: 'name',
   email: 'email',
   phone: 'phone',
+  image: 'image',
   createdAt: 'createdAt'
 };
 
@@ -133,7 +134,10 @@ exports.Prisma.ClinicScalarFieldEnum = {
   name: 'name',
   address: 'address',
   city: 'city',
+  email: 'email',
   phone: 'phone',
+  logo: 'logo',
+  clinicImage: 'clinicImage',
   isApproved: 'isApproved',
   userId: 'userId',
   createdAt: 'createdAt'
@@ -149,6 +153,8 @@ exports.Prisma.SpecialtyScalarFieldEnum = {
 exports.Prisma.DoctorScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  image: 'image',
+  description: 'description',
   clinicId: 'clinicId',
   specialtyId: 'specialtyId',
   createdAt: 'createdAt'
@@ -160,6 +166,7 @@ exports.Prisma.TimeSlotScalarFieldEnum = {
   date: 'date',
   startTime: 'startTime',
   endTime: 'endTime',
+  tokenMinutes: 'tokenMinutes',
   maxTokens: 'maxTokens'
 };
 
@@ -190,7 +197,8 @@ exports.Prisma.NullsOrder = {
 exports.BookingStatus = exports.$Enums.BookingStatus = {
   PENDING: 'PENDING',
   COMPLETED: 'COMPLETED',
-  CANCELLED: 'CANCELLED'
+  CANCELLED: 'CANCELLED',
+  SKIPPED: 'SKIPPED'
 };
 
 exports.Prisma.ModelName = {

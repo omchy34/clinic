@@ -20,6 +20,7 @@ model User {
   name      String
   email     String    @unique
   phone     String?
+  image     String?
   clinic    Clinic?
   bookings  Booking[]
   createdAt DateTime  @default(now())
