@@ -1545,7 +1545,6 @@ export namespace Prisma {
     id: string | null
     name: string | null
     email: string | null
-    phone: string | null
     image: string | null
     createdAt: Date | null
   }
@@ -1554,7 +1553,6 @@ export namespace Prisma {
     id: string | null
     name: string | null
     email: string | null
-    phone: string | null
     image: string | null
     createdAt: Date | null
   }
@@ -1563,7 +1561,6 @@ export namespace Prisma {
     id: number
     name: number
     email: number
-    phone: number
     image: number
     createdAt: number
     _all: number
@@ -1574,7 +1571,6 @@ export namespace Prisma {
     id?: true
     name?: true
     email?: true
-    phone?: true
     image?: true
     createdAt?: true
   }
@@ -1583,7 +1579,6 @@ export namespace Prisma {
     id?: true
     name?: true
     email?: true
-    phone?: true
     image?: true
     createdAt?: true
   }
@@ -1592,7 +1587,6 @@ export namespace Prisma {
     id?: true
     name?: true
     email?: true
-    phone?: true
     image?: true
     createdAt?: true
     _all?: true
@@ -1674,7 +1668,6 @@ export namespace Prisma {
     id: string
     name: string
     email: string
-    phone: string | null
     image: string | null
     createdAt: Date
     _count: UserCountAggregateOutputType | null
@@ -1700,7 +1693,6 @@ export namespace Prisma {
     id?: boolean
     name?: boolean
     email?: boolean
-    phone?: boolean
     image?: boolean
     createdAt?: boolean
     clinic?: boolean | User$clinicArgs<ExtArgs>
@@ -1712,7 +1704,6 @@ export namespace Prisma {
     id?: boolean
     name?: boolean
     email?: boolean
-    phone?: boolean
     image?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["user"]>
@@ -1721,7 +1712,6 @@ export namespace Prisma {
     id?: boolean
     name?: boolean
     email?: boolean
-    phone?: boolean
     image?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["user"]>
@@ -1730,12 +1720,11 @@ export namespace Prisma {
     id?: boolean
     name?: boolean
     email?: boolean
-    phone?: boolean
     image?: boolean
     createdAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "phone" | "image" | "createdAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "image" | "createdAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     clinic?: boolean | User$clinicArgs<ExtArgs>
     bookings?: boolean | User$bookingsArgs<ExtArgs>
@@ -1754,7 +1743,6 @@ export namespace Prisma {
       id: string
       name: string
       email: string
-      phone: string | null
       image: string | null
       createdAt: Date
     }, ExtArgs["result"]["user"]>
@@ -2185,7 +2173,6 @@ export namespace Prisma {
     readonly id: FieldRef<"User", 'String'>
     readonly name: FieldRef<"User", 'String'>
     readonly email: FieldRef<"User", 'String'>
-    readonly phone: FieldRef<"User", 'String'>
     readonly image: FieldRef<"User", 'String'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
   }
@@ -8336,7 +8323,6 @@ export namespace Prisma {
     id: 'id',
     name: 'name',
     email: 'email',
-    phone: 'phone',
     image: 'image',
     createdAt: 'createdAt'
   };
@@ -8526,7 +8512,6 @@ export namespace Prisma {
     id?: StringFilter<"User"> | string
     name?: StringFilter<"User"> | string
     email?: StringFilter<"User"> | string
-    phone?: StringNullableFilter<"User"> | string | null
     image?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     clinic?: XOR<ClinicNullableScalarRelationFilter, ClinicWhereInput> | null
@@ -8537,7 +8522,6 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
-    phone?: SortOrderInput | SortOrder
     image?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     clinic?: ClinicOrderByWithRelationInput
@@ -8551,7 +8535,6 @@ export namespace Prisma {
     OR?: UserWhereInput[]
     NOT?: UserWhereInput | UserWhereInput[]
     name?: StringFilter<"User"> | string
-    phone?: StringNullableFilter<"User"> | string | null
     image?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     clinic?: XOR<ClinicNullableScalarRelationFilter, ClinicWhereInput> | null
@@ -8562,7 +8545,6 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
-    phone?: SortOrderInput | SortOrder
     image?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: UserCountOrderByAggregateInput
@@ -8577,7 +8559,6 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"User"> | string
     name?: StringWithAggregatesFilter<"User"> | string
     email?: StringWithAggregatesFilter<"User"> | string
-    phone?: StringNullableWithAggregatesFilter<"User"> | string | null
     image?: StringNullableWithAggregatesFilter<"User"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
   }
@@ -8943,7 +8924,6 @@ export namespace Prisma {
     id: string
     name: string
     email: string
-    phone?: string | null
     image?: string | null
     createdAt?: Date | string
     clinic?: ClinicCreateNestedOneWithoutUserInput
@@ -8954,7 +8934,6 @@ export namespace Prisma {
     id: string
     name: string
     email: string
-    phone?: string | null
     image?: string | null
     createdAt?: Date | string
     clinic?: ClinicUncheckedCreateNestedOneWithoutUserInput
@@ -8965,7 +8944,6 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    phone?: NullableStringFieldUpdateOperationsInput | string | null
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     clinic?: ClinicUpdateOneWithoutUserNestedInput
@@ -8976,7 +8954,6 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    phone?: NullableStringFieldUpdateOperationsInput | string | null
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     clinic?: ClinicUncheckedUpdateOneWithoutUserNestedInput
@@ -8987,7 +8964,6 @@ export namespace Prisma {
     id: string
     name: string
     email: string
-    phone?: string | null
     image?: string | null
     createdAt?: Date | string
   }
@@ -8996,7 +8972,6 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    phone?: NullableStringFieldUpdateOperationsInput | string | null
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -9005,7 +8980,6 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    phone?: NullableStringFieldUpdateOperationsInput | string | null
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -9445,7 +9419,6 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
-    phone?: SortOrder
     image?: SortOrder
     createdAt?: SortOrder
   }
@@ -9454,7 +9427,6 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
-    phone?: SortOrder
     image?: SortOrder
     createdAt?: SortOrder
   }
@@ -9463,7 +9435,6 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
-    phone?: SortOrder
     image?: SortOrder
     createdAt?: SortOrder
   }
@@ -10537,7 +10508,6 @@ export namespace Prisma {
     id: string
     name: string
     email: string
-    phone?: string | null
     image?: string | null
     createdAt?: Date | string
     bookings?: BookingCreateNestedManyWithoutUserInput
@@ -10547,7 +10517,6 @@ export namespace Prisma {
     id: string
     name: string
     email: string
-    phone?: string | null
     image?: string | null
     createdAt?: Date | string
     bookings?: BookingUncheckedCreateNestedManyWithoutUserInput
@@ -10631,7 +10600,6 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    phone?: NullableStringFieldUpdateOperationsInput | string | null
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     bookings?: BookingUpdateManyWithoutUserNestedInput
@@ -10641,7 +10609,6 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    phone?: NullableStringFieldUpdateOperationsInput | string | null
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     bookings?: BookingUncheckedUpdateManyWithoutUserNestedInput
@@ -11021,7 +10988,6 @@ export namespace Prisma {
     id: string
     name: string
     email: string
-    phone?: string | null
     image?: string | null
     createdAt?: Date | string
     clinic?: ClinicCreateNestedOneWithoutUserInput
@@ -11031,7 +10997,6 @@ export namespace Prisma {
     id: string
     name: string
     email: string
-    phone?: string | null
     image?: string | null
     createdAt?: Date | string
     clinic?: ClinicUncheckedCreateNestedOneWithoutUserInput
@@ -11117,7 +11082,6 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    phone?: NullableStringFieldUpdateOperationsInput | string | null
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     clinic?: ClinicUpdateOneWithoutUserNestedInput
@@ -11127,7 +11091,6 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    phone?: NullableStringFieldUpdateOperationsInput | string | null
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     clinic?: ClinicUncheckedUpdateOneWithoutUserNestedInput
