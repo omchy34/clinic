@@ -142,7 +142,7 @@ export async function POST(request: Request) {
   }
 }
 
-// Registered or not
+// Registered or not 
 export async function GET() {
   try {
     const { userId } = await auth();
@@ -155,8 +155,8 @@ export async function GET() {
       select: { isApproved: true },
     });
 
-    const state = !clinic ? "none" : clinic.isApproved ? "approved" : "pending";
-    return NextResponse.json({ state });
+    const state = !clinic ? "none" : clinic.isApproved ? true : false;
+    return NextResponse.json({state});
   } catch (error) {
     console.error(error);
     return NextResponse.json({ message: "Something went wrong" }, { status: 500 });

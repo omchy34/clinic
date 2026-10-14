@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { Bricolage_Grotesque } from "next/font/google";
+import { useAuth } from "@clerk/nextjs";
 
-// If the font import gives an error, remove these 2 lines and the font.className uses below
 const font = Bricolage_Grotesque({ subsets: ["latin"] });
 
 const field =
@@ -16,30 +17,114 @@ const hint = "mt-1.5 text-xs text-[#5B726C]";
 const errorText = "mt-1.5 text-xs text-[#B42318]";
 const secondaryBtn =
   "cursor-pointer rounded-md border border-[#C9D6D2] bg-white px-3.5 py-2 text-sm font-medium text-[#14302B] hover:bg-[#F3F6F5] focus-within:ring-2 focus-within:ring-[#F5B82E]";
+const primaryLink =
+  "mt-6 inline-block rounded-md bg-[#14302B] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1C4038] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B82E] focus-visible:ring-offset-2";
 
-// Same path as your route file: app/api/user/create/route.ts
 const ENDPOINT = "/api/user/create";
 
 const TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_PHOTOS = 8;
-const LOGO_MB = 2;
-const PHOTO_MB = 5;
+// Size of the file the user picks. We shrink it before upload.
+const MAX_INPUT_MB = 15;
+// Everything we upload together. Vercel functions reject request bodies above ~4.5 MB.
+const MAX_TOTAL_MB = 4;
+const MAX_TOTAL_BYTES = MAX_TOTAL_MB * 1024 * 1024;
+const TOTAL_MSG = `Total upload must stay under ${MAX_TOTAL_MB} MB. Remove a photo or pick smaller images.`;
 
+type Status = "loading" | "none" | "pending" | "approved" | "error";
 type Preview = { id: string; file: File; url: string };
 
 function toPreview(file: File): Preview {
-  return { id: crypto.randomUUID(), file, url: URL.createObjectURL(file) };
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+  return { id, file, url: URL.createObjectURL(file) };
 }
 
-function check(file: File, maxMb: number): string | null {
+function check(file: File): string | null {
   if (!TYPES.includes(file.type)) return "Only JPG, PNG or WebP images are allowed.";
-  if (file.size > maxMb * 1024 * 1024) return `Each file must be under ${maxMb} MB.`;
+  if (file.size > MAX_INPUT_MB * 1024 * 1024) return `Each file must be under ${MAX_INPUT_MB} MB.`;
   return null;
 }
 
+function totalBytes(items: (Preview | null)[]): number {
+  return items.reduce((sum, p) => sum + (p?.file.size ?? 0), 0);
+}
+
+// Resize and recompress an image in the browser. If anything fails, the original file is used.
+async function shrink(
+  file: File,
+  maxSide: number,
+  type: "image/jpeg" | "image/png",
+): Promise<File> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      bitmap.close();
+      return file;
+    }
+    if (type === "image/jpeg") {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+    }
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, type, 0.82),
+    );
+    if (!blob || blob.size >= file.size) return file;
+
+    const base = file.name.replace(/\.[^.]+$/, "");
+    const ext = type === "image/png" ? "png" : "jpg";
+    return new File([blob], `${base}.${ext}`, { type: blob.type || type });
+  } catch {
+    return file;
+  }
+}
+
+function Centered({ children }: { children: React.ReactNode }) {
+  return (
+    <main
+      className={`${font.className} flex min-h-screen items-center justify-center bg-[#F3F6F5] px-5 py-10`}
+    >
+      <div className="w-full max-w-md rounded-xl bg-white p-8 text-center ring-1 ring-[#DCE6E3]">
+        {children}
+      </div>
+    </main>
+  );
+}
+
+function StatusCard({ title, text, href }: { title: string; text: string; href: string }) {
+  return (
+    <Centered>
+      <CheckCircle2 className="mx-auto text-[#1F7A5C]" size={44} aria-hidden="true" />
+      <h1 className="mt-4 text-2xl font-semibold tracking-tight text-[#14302B]">{title}</h1>
+      <p className="mt-2 text-[15px] text-[#5B726C]">{text}</p>
+      <Link href={href} className={primaryLink}>
+        Open dashboard
+      </Link>
+    </Centered>
+  );
+}
+
 export default function Page() {
-  const [submitted, setSubmitted] = useState(false);
+  const { getToken } = useAuth();
+  const router = useRouter();
+
+  const [status, setStatus] = useState<Status>("loading");
+  const [attempt, setAttempt] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [logo, setLogo] = useState<Preview | null>(null);
@@ -47,18 +132,79 @@ export default function Page() {
   const [photos, setPhotos] = useState<Preview[]>([]);
   const [photoError, setPhotoError] = useState<string | null>(null);
 
-  function onLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  // Keep the latest preview URLs so they can be released when the page closes
+  const urlsRef = useRef<string[]>([]);
+  useEffect(() => {
+    urlsRef.current = [...(logo ? [logo.url] : []), ...photos.map((p) => p.url)];
+  }, [logo, photos]);
+  useEffect(() => {
+    return () => urlsRef.current.forEach((u) => URL.revokeObjectURL(u));
+  }, []);
+
+  // Find out if this user already has a clinic, and whether it is approved
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkClinic() {
+      try {
+        const token = await getToken();
+        const { data } = await axios.get(ENDPOINT, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (cancelled) return;
+
+        const approved = data?.state ?? data?.isApproved;
+        if (approved === true) {
+          setStatus("approved");
+          router.replace("/clinic");
+        } else if (approved === false) {
+          setStatus("pending");
+        } else {
+          setStatus("none");
+        }
+      } catch (err) {
+        if (cancelled) return;
+        // 404 means "no clinic yet", so the registration form should show
+        if (axios.isAxiosError(err) && err.response?.status === 404) setStatus("none");
+        else setStatus("error");
+      }
+    }
+
+    checkClinic();
+    return () => {
+      cancelled = true;
+    };
+  }, [getToken, attempt, router]);
+
+  function retry() {
+    setStatus("loading");
+    setAttempt((n) => n + 1);
+  }
+
+  async function onLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    const problem = check(file, LOGO_MB);
+
+    const problem = check(file);
     if (problem) {
       setLogoError(problem);
       return;
     }
-    setLogoError(null);
-    if (logo) URL.revokeObjectURL(logo.url);
-    setLogo(toPreview(file));
+
+    setProcessing(true);
+    try {
+      const small = await shrink(file, 512, file.type === "image/png" ? "image/png" : "image/jpeg");
+      if (totalBytes(photos) + small.size > MAX_TOTAL_BYTES) {
+        setLogoError(TOTAL_MSG);
+        return;
+      }
+      setLogoError(null);
+      if (logo) URL.revokeObjectURL(logo.url);
+      setLogo(toPreview(small));
+    } finally {
+      setProcessing(false);
+    }
   }
 
   function removeLogo() {
@@ -67,28 +213,42 @@ export default function Page() {
     setLogoError(null);
   }
 
-  function onPhotosChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPhotosChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    const room = MAX_PHOTOS - photos.length;
-    const accepted: Preview[] = [];
-    let problem: string | null = null;
+    if (files.length === 0) return;
 
-    for (const f of files) {
-      const p = check(f, PHOTO_MB);
-      if (p) {
-        problem = p;
-        continue;
+    setProcessing(true);
+    try {
+      const room = MAX_PHOTOS - photos.length;
+      let used = totalBytes([logo, ...photos]);
+      const accepted: Preview[] = [];
+      let problem: string | null = null;
+
+      for (const f of files) {
+        const p = check(f);
+        if (p) {
+          problem = p;
+          continue;
+        }
+        if (accepted.length >= room) {
+          problem = `You can add up to ${MAX_PHOTOS} photos.`;
+          break;
+        }
+        const small = await shrink(f, 1400, "image/jpeg");
+        if (used + small.size > MAX_TOTAL_BYTES) {
+          problem = TOTAL_MSG;
+          break;
+        }
+        used += small.size;
+        accepted.push(toPreview(small));
       }
-      if (accepted.length >= room) {
-        problem = `You can add up to ${MAX_PHOTOS} photos.`;
-        break;
-      }
-      accepted.push(toPreview(f));
+
+      setPhotoError(problem);
+      setPhotos((prev) => [...prev, ...accepted]);
+    } finally {
+      setProcessing(false);
     }
-
-    setPhotoError(problem);
-    setPhotos((prev) => [...prev, ...accepted]);
   }
 
   function removePhoto(id: string) {
@@ -109,9 +269,16 @@ export default function Page() {
     });
   }
 
+  function clearPreviews() {
+    if (logo) URL.revokeObjectURL(logo.url);
+    photos.forEach((p) => URL.revokeObjectURL(p.url));
+    setLogo(null);
+    setPhotos([]);
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (submitting) return;
+    if (submitting || processing) return;
     setSubmitError(null);
     setSubmitting(true);
 
@@ -120,8 +287,13 @@ export default function Page() {
       if (logo) body.append("logo", logo.file);
       photos.forEach((p) => body.append("clinicImage", p.file));
 
-      await axios.post(ENDPOINT, body);
-      setSubmitted(true);
+      const token = await getToken();
+      await axios.post(ENDPOINT, body, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      clearPreviews();
+      setStatus("pending");
     } catch (err) {
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 413) {
@@ -139,31 +311,57 @@ export default function Page() {
     }
   }
 
-  if (submitted) {
+  if (status === "loading") {
     return (
-      <main
-        className={`${font.className} flex min-h-screen items-center justify-center bg-[#F3F6F5] px-5 py-10`}
-      >
-        <div className="w-full max-w-md rounded-xl bg-white p-8 text-center ring-1 ring-[#DCE6E3]">
-          <CheckCircle2 className="mx-auto text-[#1F7A5C]" size={44} aria-hidden="true" />
-          <h1 className="mt-4 text-2xl font-semibold tracking-tight text-[#14302B]">
-            Request sent
-          </h1>
-          <p className="mt-2 text-[15px] text-[#5B726C]">
-            An admin will check your details. Your clinic goes live for patients once it is
-            approved.
-          </p>
-          <Link
-            href="/user/dashboard"
-            className="mt-6 inline-block rounded-md bg-[#14302B] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1C4038] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B82E] focus-visible:ring-offset-2"
-          >
-            Open dashboard
-          </Link>
-        </div>
-      </main>
+      <Centered>
+        <p role="status" className="text-[15px] text-[#5B726C]">
+          Loading...
+        </p>
+      </Centered>
     );
   }
 
+  if (status === "error") {
+    return (
+      <Centered>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#14302B]">
+          Could not load your clinic
+        </h1>
+        <p className="mt-2 text-[15px] text-[#5B726C]">
+          Check your connection and try again.
+        </p>
+        <button
+          type="button"
+          onClick={retry}
+          className="mt-6 rounded-md bg-[#14302B] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1C4038] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B82E] focus-visible:ring-offset-2"
+        >
+          Try again
+        </button>
+      </Centered>
+    );
+  }
+
+  if (status === "pending") {
+    return (
+      <StatusCard
+        title="Request sent"
+        text="An admin will check your details. Your clinic goes live for patients once it is approved."
+        href="/user"
+      />
+    );
+  }
+
+  if (status === "approved") {
+    return (
+      <Centered>
+        <p role="status" className="text-[15px] text-[#5B726C]">
+          Opening your clinic...
+        </p>
+      </Centered>
+    );
+  }
+
+  // status === "none": no clinic yet, show the registration form
   return (
     <main
       className={`${font.className} min-h-screen bg-[#F3F6F5] lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]`}
@@ -206,8 +404,8 @@ export default function Page() {
               clear.
             </p>
             <p>
-              Tap Complete &amp; Next or Skip &amp; Next, and every patient's estimate updates
-              on its own.
+              Tap Complete &amp; Next or Skip &amp; Next, and every patient&apos;s estimate
+              updates on its own.
             </p>
           </div>
         </div>
@@ -310,6 +508,7 @@ export default function Page() {
                     type="file"
                     accept={TYPES.join(",")}
                     onChange={onLogoChange}
+                    disabled={processing}
                     className="sr-only"
                   />
                   {logo ? "Change logo" : "Upload logo"}
@@ -326,7 +525,8 @@ export default function Page() {
               </div>
             </div>
             <p className={hint}>
-              A square image works best. JPG, PNG or WebP, up to {LOGO_MB} MB.
+              A square image works best. JPG, PNG or WebP. Large images are resized
+              automatically.
             </p>
             {logoError && (
               <p role="alert" className={errorText}>
@@ -385,14 +585,16 @@ export default function Page() {
                     accept={TYPES.join(",")}
                     multiple
                     onChange={onPhotosChange}
+                    disabled={processing}
                     className="sr-only"
                   />
-                  Add photos
+                  {processing ? "Resizing..." : "Add photos"}
                 </label>
               )}
             </div>
             <p className={hint}>
-              Up to {MAX_PHOTOS} photos, {PHOTO_MB} MB each. The first photo is the cover.
+              Up to {MAX_PHOTOS} photos. Large photos are resized automatically. The first photo
+              is the cover.
             </p>
             {photoError && (
               <p role="alert" className={errorText}>
@@ -408,7 +610,8 @@ export default function Page() {
           )}
 
           <button
-            disabled={submitting}
+            type="submit"
+            disabled={submitting || processing}
             className="w-full rounded-md bg-[#F5B82E] px-4 py-3 text-[15px] font-semibold text-[#14302B] hover:bg-[#E6A91F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14302B] focus-visible:ring-offset-2 disabled:opacity-60"
           >
             {submitting ? "Sending..." : "Send for approval"}
