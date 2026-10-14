@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useState } from "react";
-import { Check, CheckCircle2, Clock, Mail, MapPin, Phone } from "lucide-react";
+import { Check, CheckCircle2, Clock, Eye, Mail, MapPin, Phone, X } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "@clerk/nextjs";
 
@@ -40,9 +40,14 @@ function StatusBadge({ approved }: { approved: boolean }) {
   );
 }
 
-type CardProps = { clinic: ClinicRequest; approving: boolean; onApprove: () => void };
+type CardProps = {
+  clinic: ClinicRequest;
+  approving: boolean;
+  onApprove: () => void;
+  onView: () => void;
+};
 
-function ClinicCard({ clinic, approving, onApprove }: CardProps) {
+function ClinicCard({ clinic, approving, onApprove, onView }: CardProps) {
   const date = new Date(clinic.createdAt).toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
@@ -92,17 +97,108 @@ function ClinicCard({ clinic, approving, onApprove }: CardProps) {
         </li>
       </ul>
 
-      {!clinic.isApproved && (
+      <div className="mt-auto flex gap-2">
         <button
-          onClick={onApprove}
-          disabled={approving}
-          className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-500/30 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60"
+          onClick={onView}
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white/60 px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-white/90"
         >
-          <Check size={16} />
-          {approving ? "Approving..." : "Approve clinic"}
+          <Eye size={16} />
+          View details
         </button>
-      )}
+
+        {!clinic.isApproved && (
+          <button
+            onClick={onApprove}
+            disabled={approving}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-500/30 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60"
+          >
+            <Check size={16} />
+            {approving ? "Approving..." : "Approve clinic"}
+          </button>
+        )}
+      </div>
     </article>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium uppercase text-gray-500">{label}</dt>
+      <dd className="wrap-break-word text-sm text-gray-800">{value}</dd>
+    </div>
+  );
+}
+
+type ModalProps = {
+  clinic: ClinicRequest;
+  approving: boolean;
+  onApprove: () => void;
+  onClose: () => void;
+};
+
+function ClinicModal({ clinic, approving, onApprove, onClose }: ModalProps) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        className="max-h-[90vh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-2xl border border-white/60 bg-white/95 p-6 shadow-xl"
+      >
+        <div className="flex items-start gap-3">
+          {clinic.logo && <img src={clinic.logo} alt="" className="h-14 w-14 rounded-xl object-cover" />}
+          <div className="min-w-0 flex-1 space-y-1">
+            <h2 className="text-xl font-bold text-gray-800">{clinic.name}</h2>
+            <StatusBadge approved={clinic.isApproved} />
+          </div>
+          <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 hover:bg-gray-100">
+            <X size={20} />
+          </button>
+        </div>
+
+        {clinic.clinicImage.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto">
+            {clinic.clinicImage.map((src, i) => (
+              <img key={`${i}-${src}`} src={src} alt="" className="h-32 w-44 shrink-0 rounded-lg object-cover" />
+            ))}
+          </div>
+        )}
+
+        <dl className="grid gap-4 sm:grid-cols-2">
+          <Row label="Address" value={clinic.address} />
+          <Row label="City" value={clinic.city} />
+          <Row label="Email" value={clinic.email} />
+          <Row label="Phone" value={clinic.phone} />
+          <Row label="Owner" value={clinic.user?.name ?? "N/A"} />
+          <Row label="Submitted on" value={new Date(clinic.createdAt).toLocaleString("en-IN")} />
+          <Row label="Clinic ID" value={clinic.id} />
+          <Row label="User ID" value={clinic.userId} />
+        </dl>
+
+        {!clinic.isApproved && (
+          <button
+            onClick={onApprove}
+            disabled={approving}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            <Check size={16} />
+            {approving ? "Approving..." : "Approve clinic"}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -113,6 +209,8 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = requests.find((r) => r.id === selectedId) ?? null;
 
   useEffect(() => {
     async function fetchRequests() {
@@ -199,10 +297,20 @@ export default function Page() {
               key={clinic.id}
               clinic={clinic}
               approving={approvingId === clinic.id}
+              onView={() => setSelectedId(clinic.id)}
               onApprove={() => approve(clinic.id)}
             />
           ))}
         </div>
+      )}
+
+      {selected && (
+        <ClinicModal
+          clinic={selected}
+          approving={approvingId === selected.id}
+          onApprove={() => approve(selected.id)}
+          onClose={() => setSelectedId(null)}
+        />
       )}
     </div>
   );

@@ -19,7 +19,7 @@
     "dotenv": "^18.0.7",
     "imagekit": "^6.0.0",
     "inngest": "^4.23.0",
-    "lucide-react": "^1.52.0",
+    "lucide-react": "^1.56.0",
     "next": "16.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
