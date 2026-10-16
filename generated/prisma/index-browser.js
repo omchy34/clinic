@@ -142,21 +142,24 @@ exports.Prisma.ClinicScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
-exports.Prisma.SpecialtyScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  slug: 'slug',
-  keywords: 'keywords'
-};
-
 exports.Prisma.DoctorScalarFieldEnum = {
   id: 'id',
   name: 'name',
   image: 'image',
   description: 'description',
+  isActive: 'isActive',
+  specialtySlug: 'specialtySlug',
   clinicId: 'clinicId',
-  specialtyId: 'specialtyId',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.DoctorScheduleScalarFieldEnum = {
+  id: 'id',
+  doctorId: 'doctorId',
+  day: 'day',
+  startTime: 'startTime',
+  endTime: 'endTime',
+  tokenMinutes: 'tokenMinutes'
 };
 
 exports.Prisma.TimeSlotScalarFieldEnum = {
@@ -166,17 +169,20 @@ exports.Prisma.TimeSlotScalarFieldEnum = {
   startTime: 'startTime',
   endTime: 'endTime',
   tokenMinutes: 'tokenMinutes',
-  maxTokens: 'maxTokens'
+  maxTokens: 'maxTokens',
+  isClosed: 'isClosed'
 };
 
 exports.Prisma.BookingScalarFieldEnum = {
   id: 'id',
   tokenNumber: 'tokenNumber',
   status: 'status',
+  patientName: 'patientName',
   userId: 'userId',
   clinicId: 'clinicId',
   slotId: 'slotId',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  completedAt: 'completedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -193,6 +199,16 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
+exports.Weekday = exports.$Enums.Weekday = {
+  MON: 'MON',
+  TUE: 'TUE',
+  WED: 'WED',
+  THU: 'THU',
+  FRI: 'FRI',
+  SAT: 'SAT',
+  SUN: 'SUN'
+};
+
 exports.BookingStatus = exports.$Enums.BookingStatus = {
   PENDING: 'PENDING',
   COMPLETED: 'COMPLETED',
@@ -203,8 +219,8 @@ exports.BookingStatus = exports.$Enums.BookingStatus = {
 exports.Prisma.ModelName = {
   User: 'User',
   Clinic: 'Clinic',
-  Specialty: 'Specialty',
   Doctor: 'Doctor',
+  DoctorSchedule: 'DoctorSchedule',
   TimeSlot: 'TimeSlot',
   Booking: 'Booking'
 };

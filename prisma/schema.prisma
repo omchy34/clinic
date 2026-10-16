@@ -7,14 +7,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum BookingStatus {
-  PENDING
-  COMPLETED
-  CANCELLED
-  SKIPPED
-}
-
-
 model User {
   id        String    @id // Clerk ki user id (Inngest webhook se aayegi)
   name      String
@@ -33,36 +25,65 @@ model Clinic {
   email       String
   phone       String
   logo        String?
-  clinicImage String[] @default([])
+  clinicImage String[]  @default([])
   isApproved  Boolean   @default(false)
   userId      String    @unique
   user        User      @relation(fields: [userId], references: [id])
   doctors     Doctor[]
   bookings    Booking[]
   createdAt   DateTime  @default(now())
+
+  @@index([city, isApproved])
 }
 
-model Specialty {
-  id       String   @id @default(cuid())
-  name     String   @unique
-  slug     String   @unique
-  keywords String[]
-  doctors  Doctor[]
+enum BookingStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  SKIPPED
 }
 
+enum Weekday {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
+// Specialty ab database table nahi hai. List src/data/specialties.json mein hai,
+// aur Doctor sirf uski slug (jaise "dentist") store karta hai.
 model Doctor {
-  id          String     @id @default(cuid())
-  name        String
-  image       String?
-  description String?
-  clinicId    String
-  clinic      Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  specialtyId String
-  specialty   Specialty  @relation(fields: [specialtyId], references: [id])
-  slots       TimeSlot[]
-  createdAt   DateTime   @default(now())
+  id            String           @id @default(cuid())
+  name          String
+  image         String?
+  description   String?
+  isActive      Boolean          @default(true)
+  specialtySlug String
+  clinicId      String
+  clinic        Clinic           @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  schedules     DoctorSchedule[]
+  slots         TimeSlot[]
+  createdAt     DateTime         @default(now())
 
   @@index([clinicId])
+  @@index([specialtySlug])
+}
+
+// Doctor kis din, kis time baithta hai (hafte ka repeat hone wala schedule)
+model DoctorSchedule {
+  id           String  @id @default(cuid())
+  doctorId     String
+  doctor       Doctor  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  day          Weekday
+  startTime    String // "10:00"
+  endTime      String // "13:00"
+  tokenMinutes Int     @default(15)
+
+  @@unique([doctorId, day, startTime])
+  @@index([doctorId])
 }
 
 model TimeSlot {
@@ -70,10 +91,11 @@ model TimeSlot {
   doctorId     String
   doctor       Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   date         DateTime  @db.Date
-  startTime    String    // "10:00"
-  endTime      String    // "13:00"
+  startTime    String // "10:00"
+  endTime      String // "13:00"
   tokenMinutes Int       @default(15)
   maxTokens    Int
+  isClosed     Boolean   @default(false)
   bookings     Booking[]
 
   @@unique([doctorId, date, startTime])
@@ -84,6 +106,7 @@ model Booking {
   id          String        @id @default(cuid())
   tokenNumber Int
   status      BookingStatus @default(PENDING)
+  patientName String?
   userId      String
   user        User          @relation(fields: [userId], references: [id])
   clinicId    String
@@ -91,8 +114,10 @@ model Booking {
   slotId      String
   slot        TimeSlot      @relation(fields: [slotId], references: [id], onDelete: Cascade)
   createdAt   DateTime      @default(now())
+  completedAt DateTime?
 
   @@unique([slotId, tokenNumber])
   @@index([userId])
   @@index([clinicId, status])
+  @@index([slotId, status])
 }

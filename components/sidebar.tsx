@@ -22,8 +22,7 @@ const clinicItems: NavItem[] = [
 
 const adminItems: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { label: "Clinic Requests", href: "/admin/requests", icon: ClipboardList },
-  { label: "Clinics", href: "/admin/clinics", icon: Building2 },
+  { label: "Clinic Requests", href: "/admin/requests", icon: Building2 },
   { label: "Users", href: "/admin/users", icon: Users },
 ];
 
