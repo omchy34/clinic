@@ -1,27 +1,24 @@
 // src/lib/guards.ts
-// Login checks for API routes. They throw an ApiError, so routes just wrap them in try/catch.
-
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import authClinic from "@/middlewere/authClinic";
-import { ApiError } from "@/lib/apiError";
+import { ApiError } from "@/lib/booking-server";
 
 export async function requireUser() {
   const { userId } = await auth();
-  if (!userId) throw new ApiError("unauthorized", 401);
+  if (!userId) throw new ApiError(401, "unauthorized");
   return userId;
 }
 
-// Logged-in clinic owner, with the clinic settings the queue needs
+// Logged-in owner of an approved clinic
 export async function requireClinic() {
   const userId = await requireUser();
-  if (!(await authClinic(userId))) throw new ApiError("not authorized", 403);
 
   const clinic = await prisma.clinic.findUnique({
     where: { userId },
-    select: { id: true, timezone: true, waitingAllowanceMinutes: true, maxSkips: true },
+    select: { id: true, timezone: true, isApproved: true },
   });
-  if (!clinic) throw new ApiError("clinic not found", 404);
+  if (!clinic) throw new ApiError(404, "clinic not found");
+  if (!clinic.isApproved) throw new ApiError(403, "clinic not approved");
 
-  return { userId, clinic };
+  return { userId, clinic: { id: clinic.id, timezone: clinic.timezone } };
 }
