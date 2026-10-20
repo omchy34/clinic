@@ -12,6 +12,7 @@ import {
   type Weekday,
 } from "./shared";
 import { Field, ui } from "./ui";
+import type { ScheduleRow } from "./shared";
 
 export type Rule = {
   id: string;
@@ -28,6 +29,28 @@ export const newRule = (startTime = "10:00", endTime = "13:00"): Rule => ({
   endTime,
   bookingCloseTime: "",
 });
+
+export function schedulesToRules(schedules: ScheduleRow[]): Rule[] {
+  const groups = new Map<
+    string,
+    { days: Weekday[]; startTime: string; endTime: string; bookingCloseTime: string }
+  >();
+
+  for (const s of schedules) {
+    const key = `${s.startTime}|${s.endTime}|${s.bookingCloseTime ?? ""}`;
+    const g = groups.get(key) ?? {
+      days: [],
+      startTime: s.startTime,
+      endTime: s.endTime,
+      bookingCloseTime: s.bookingCloseTime ?? "",
+    };
+    g.days.push(s.day);
+    groups.set(key, g);
+  }
+
+  // newRule() supplies the id and any other fields, so every rule keeps a unique id
+  return [...groups.values()].map((g) => ({ ...newRule(), ...g }));
+}
 
 /* ------------------------------ validation ------------------------------ */
 

@@ -5,24 +5,28 @@
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { Plus } from "lucide-react";
-import AddDoctorModal from "./AddDoctorModal";
+import DoctorModal from "./AddDoctorModal";
 import DoctorCard from "./DoctorCard";
 import { errorMessage, type DoctorRow } from "./shared";
 import { ui } from "./ui";
 import { useAuthHeaders } from "./useAuthHeaders";
 
-const ENDPOINT = "/api/clinic/add-doctors";
+const LIST_ENDPOINT = "/api/clinic/add-doctors";
+const doctorEndpoint = (id: string) => `/api/clinic/add-doctors/${id}`;
 
 export default function DoctorsPage() {
   const authHeaders = useAuthHeaders();
   const [doctors, setDoctors] = useState<DoctorRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<DoctorRow | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       setLoadError(null);
-      const { data } = await axios.get<{ doctors: DoctorRow[] }>(ENDPOINT, {
+      const { data } = await axios.get<{ doctors: DoctorRow[] }>(LIST_ENDPOINT, {
         headers: await authHeaders(),
       });
       setDoctors(data.doctors);
@@ -34,6 +38,37 @@ export default function DoctorsPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // on/off switch: updates the screen first, goes back if the API fails
+  const toggleActive = useCallback(
+    async (doctor: DoctorRow) => {
+      if (togglingId) return;
+      const next = !doctor.isActive;
+
+      const setActive = (value: boolean) =>
+        setDoctors((list) =>
+          list && list.map((d) => (d.id === doctor.id ? { ...d, isActive: value } : d))
+        );
+
+      setActionError(null);
+      setTogglingId(doctor.id);
+      setActive(next);
+
+      try {
+        await axios.patch(
+          doctorEndpoint(doctor.id),
+          { isActive: next },
+          { headers: await authHeaders() }
+        );
+      } catch (err) {
+        setActive(doctor.isActive);
+        setActionError(errorMessage(err, "Could not update the doctor. Please try again."));
+      } finally {
+        setTogglingId(null);
+      }
+    },
+    [authHeaders, togglingId]
+  );
 
   let content;
   if (loadError) {
@@ -75,11 +110,19 @@ export default function DoctorsPage() {
     content = (
       <ul className="grid gap-4 md:grid-cols-2">
         {doctors.map((d) => (
-          <DoctorCard key={d.id} doctor={d} />
+          <DoctorCard
+            key={d.id}
+            doctor={d}
+            toggling={togglingId === d.id}
+            onEdit={setEditing}
+            onToggle={toggleActive}
+          />
         ))}
       </ul>
     );
   }
+
+  const activeCount = doctors?.filter((d) => d.isActive).length ?? 0;
 
   return (
     <div className="mx-auto w-full max-w-5xl p-4 sm:p-6">
@@ -88,7 +131,7 @@ export default function DoctorsPage() {
           <h1 className="text-2xl font-semibold tracking-tight text-[#14302B]">Doctors</h1>
           <p className="mt-1 text-sm text-[#5B726C]">
             {doctors?.length
-              ? `${doctors.length} ${doctors.length === 1 ? "doctor takes" : "doctors take"} token bookings at your clinic.`
+              ? `${activeCount} of ${doctors.length} ${doctors.length === 1 ? "doctor is" : "doctors are"} taking token bookings.`
               : "Patients book tokens with the doctors listed here."}
           </p>
         </div>
@@ -105,13 +148,25 @@ export default function DoctorsPage() {
         )}
       </div>
 
+      {actionError && (
+        <p role="alert" className="mt-4 rounded-lg bg-[#FEF3F2] px-3.5 py-2.5 text-sm text-[#B42318]">
+          {actionError}
+        </p>
+      )}
+
       <div className="mt-6">{content}</div>
 
-      {adding && (
-        <AddDoctorModal
-          onClose={() => setAdding(false)}
-          onAdded={() => {
+      {(adding || editing) && (
+        <DoctorModal
+          key={editing?.id ?? "new"}
+          doctor={editing ?? undefined}
+          onClose={() => {
             setAdding(false);
+            setEditing(null);
+          }}
+          onSaved={() => {
+            setAdding(false);
+            setEditing(null);
             void load();
           }}
         />
