@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { Bricolage_Grotesque } from "next/font/google";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 
 const font = Bricolage_Grotesque({ subsets: ["latin"] });
 
@@ -119,6 +119,7 @@ function StatusCard({ title, text, href }: { title: string; text: string; href: 
 
 export default function Page() {
   const { getToken } = useAuth();
+  const { user } = useUser();
   const router = useRouter();
 
   const [status, setStatus] = useState<Status>("loading");
@@ -438,6 +439,26 @@ export default function Page() {
               placeholder="Sen Dental Care"
               className={field}
             />
+          </div>
+
+          <div>
+            <label htmlFor="email" className={label}>
+              Clinic email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              maxLength={254}
+              autoComplete="email"
+              defaultValue={user?.primaryEmailAddress?.emailAddress ?? ""}
+              placeholder="clinic@example.com"
+              className={field}
+            />
+            <p className={hint}>
+              Pre-filled with your login email. Change it if the clinic uses a different one.
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

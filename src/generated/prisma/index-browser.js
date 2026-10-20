@@ -138,6 +138,7 @@ exports.Prisma.ClinicScalarFieldEnum = {
   logo: 'logo',
   clinicImage: 'clinicImage',
   isApproved: 'isApproved',
+  timezone: 'timezone',
   userId: 'userId',
   createdAt: 'createdAt'
 };
@@ -159,30 +160,43 @@ exports.Prisma.DoctorScheduleScalarFieldEnum = {
   day: 'day',
   startTime: 'startTime',
   endTime: 'endTime',
-  tokenMinutes: 'tokenMinutes'
+  bookingCloseTime: 'bookingCloseTime'
 };
 
-exports.Prisma.TimeSlotScalarFieldEnum = {
+exports.Prisma.DoctorSessionScalarFieldEnum = {
   id: 'id',
   doctorId: 'doctorId',
   date: 'date',
   startTime: 'startTime',
   endTime: 'endTime',
-  tokenMinutes: 'tokenMinutes',
-  maxTokens: 'maxTokens',
-  isClosed: 'isClosed'
+  lastTokenNumber: 'lastTokenNumber',
+  bookingOpensAt: 'bookingOpensAt',
+  bookingClosesAt: 'bookingClosesAt',
+  bookingExtended: 'bookingExtended',
+  bookingManuallyClosed: 'bookingManuallyClosed',
+  queueStatus: 'queueStatus',
+  queueStartedAt: 'queueStartedAt',
+  queueEndedAt: 'queueEndedAt',
+  queueVersion: 'queueVersion',
+  servingBookingId: 'servingBookingId',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.BookingScalarFieldEnum = {
   id: 'id',
   tokenNumber: 'tokenNumber',
+  queuePosition: 'queuePosition',
   status: 'status',
   patientName: 'patientName',
+  skipCount: 'skipCount',
+  lastSkippedAt: 'lastSkippedAt',
   userId: 'userId',
   clinicId: 'clinicId',
-  slotId: 'slotId',
+  sessionId: 'sessionId',
   createdAt: 'createdAt',
-  completedAt: 'completedAt'
+  calledAt: 'calledAt',
+  completedAt: 'completedAt',
+  cancelledAt: 'cancelledAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -209,11 +223,17 @@ exports.Weekday = exports.$Enums.Weekday = {
   SUN: 'SUN'
 };
 
+exports.QueueStatus = exports.$Enums.QueueStatus = {
+  NOT_STARTED: 'NOT_STARTED',
+  ACTIVE: 'ACTIVE',
+  ENDED: 'ENDED'
+};
+
 exports.BookingStatus = exports.$Enums.BookingStatus = {
-  PENDING: 'PENDING',
+  CONFIRMED: 'CONFIRMED',
+  SERVING: 'SERVING',
   COMPLETED: 'COMPLETED',
-  CANCELLED: 'CANCELLED',
-  SKIPPED: 'SKIPPED'
+  CANCELLED: 'CANCELLED'
 };
 
 exports.Prisma.ModelName = {
@@ -221,7 +241,7 @@ exports.Prisma.ModelName = {
   Clinic: 'Clinic',
   Doctor: 'Doctor',
   DoctorSchedule: 'DoctorSchedule',
-  TimeSlot: 'TimeSlot',
+  DoctorSession: 'DoctorSession',
   Booking: 'Booking'
 };
 

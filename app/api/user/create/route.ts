@@ -25,7 +25,7 @@ async function uploadOne(file: File, folder: string) {
   return imagekit.upload({ file: buffer, fileName: file.name, folder });
 }
 
-// Cleanup function to delete uploaded files 
+// Cleanup function to delete uploaded files
 async function cleanup(fileIds: string[]) {
   await Promise.allSettled(fileIds.map((id) => imagekit.deleteFile(id)));
 }
@@ -43,12 +43,16 @@ export async function POST(request: Request) {
     const address = String(formData.get("address") ?? "").trim();
     const city = String(formData.get("city") ?? "").trim();
     const phone = String(formData.get("phone") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim().toLowerCase();
 
-    if (!name || !address || !city || !phone) {
+    if (!name || !address || !city || !phone || !email) {
       return NextResponse.json({ message: "All fields are required" }, { status: 400 });
     }
     if (!/^[6-9]\d{9}$/.test(phone)) {
       return NextResponse.json({ message: "Enter a valid 10-digit mobile number" }, { status: 400 });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      return NextResponse.json({ message: "Enter a valid email address" }, { status: 400 });
     }
     if (name.length > 100 || address.length > 300 || city.length > 60) {
       return NextResponse.json({ message: "One of the fields is too long" }, { status: 400 });
@@ -70,8 +74,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: problem }, { status: 400 });
     }
 
-
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    // ---------- account checks ----------
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
     if (!user) {
       return NextResponse.json(
         { message: "Your account is still being set up. Please try again in a moment." },
@@ -87,7 +91,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const email = String(formData.get("email") ?? "").trim() || user.email;
+    // ---------- upload images ----------
     const logoJob = logo ? uploadOne(logo, "ClinicLogos") : Promise.resolve(null);
     const photoJobs = photos.map((p) => uploadOne(p, "ClinicImages"));
 
@@ -106,13 +110,13 @@ export async function POST(request: Request) {
       );
     }
 
-
     const logoUrl =
       logoResult.status === "fulfilled" && logoResult.value ? logoResult.value.url : null;
     const photoUrls = photoResults.flatMap((r) =>
       r.status === "fulfilled" && r.value ? [r.value.url] : []
     );
 
+    // ---------- save ----------
     try {
       await prisma.clinic.create({
         data: {
@@ -127,22 +131,21 @@ export async function POST(request: Request) {
         },
       });
     } catch (e) {
-      await cleanup(fileIds); 
+      await cleanup(fileIds);
       throw e;
     }
 
     return NextResponse.json({ message: "Applied, waiting for approval" }, { status: 201 });
-  } catch (error: any) {
-    console.error(error);
-    if (error?.code === "P2002") {
-
+  } catch (error) {
+    console.error("POST /api/user/create", error);
+    if ((error as { code?: string })?.code === "P2002") {
       return NextResponse.json({ message: "You have already registered a clinic" }, { status: 409 });
     }
     return NextResponse.json({ message: "Something went wrong" }, { status: 500 });
   }
 }
 
-// Registered or not 
+// Registered or not
 export async function GET() {
   try {
     const { userId } = await auth();
@@ -156,9 +159,9 @@ export async function GET() {
     });
 
     const state = !clinic ? "none" : clinic.isApproved ? true : false;
-    return NextResponse.json({state});
+    return NextResponse.json({ state });
   } catch (error) {
-    console.error(error);
+    console.error("GET /api/user/create", error);
     return NextResponse.json({ message: "Something went wrong" }, { status: 500 });
   }
 }

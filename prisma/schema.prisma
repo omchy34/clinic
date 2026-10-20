@@ -8,7 +8,7 @@ datasource db {
 }
 
 model User {
-  id        String    @id // Clerk ki user id (Inngest webhook se aayegi)
+  id        String    @id // Clerk user id (comes from the Inngest webhook)
   name      String
   email     String    @unique
   image     String?
@@ -18,29 +18,39 @@ model User {
 }
 
 model Clinic {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  address     String
+  phone       String
   city        String
   email       String
-  phone       String
+  address     String
   logo        String?
-  clinicImage String[]  @default([])
-  isApproved  Boolean   @default(false)
-  userId      String    @unique
-  user        User      @relation(fields: [userId], references: [id])
-  doctors     Doctor[]
-  bookings    Booking[]
-  createdAt   DateTime  @default(now())
+  clinicImage String[] @default([])
+  isApproved  Boolean  @default(false)
+
+  // All booking dates and closing times are interpreted in this time zone
+  timezone String @default("Asia/Kolkata")
+
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id])
+  doctors   Doctor[]
+  bookings  Booking[]
+  createdAt DateTime  @default(now())
 
   @@index([city, isApproved])
 }
 
 enum BookingStatus {
-  PENDING
+  CONFIRMED // token booked, waiting in the queue (shown as "Skipped" badge when skipCount > 0)
+  SERVING // the doctor is seeing this patient now
   COMPLETED
   CANCELLED
-  SKIPPED
+}
+
+enum QueueStatus {
+  NOT_STARTED // "Queue Not Started" / "Waiting for Doctor"
+  ACTIVE // clinic clicked "Start Token"
+  ENDED // session finished
 }
 
 enum Weekday {
@@ -53,8 +63,8 @@ enum Weekday {
   SUN
 }
 
-// Specialty ab database table nahi hai. List src/data/specialties.json mein hai,
-// aur Doctor sirf uski slug (jaise "dentist") store karta hai.
+// The specialty list is not a database table. It lives in src/data/specialties.json
+// and Doctor only stores its slug (for example "dentist").
 model Doctor {
   id            String           @id @default(cuid())
   name          String
@@ -65,59 +75,97 @@ model Doctor {
   clinicId      String
   clinic        Clinic           @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   schedules     DoctorSchedule[]
-  slots         TimeSlot[]
+  sessions      DoctorSession[]
   createdAt     DateTime         @default(now())
 
   @@index([clinicId])
   @@index([specialtySlug])
 }
 
-// Doctor kis din, kis time baithta hai (hafte ka repeat hone wala schedule)
+// The weekly repeating schedule: which day and hours the doctor sits
 model DoctorSchedule {
-  id           String  @id @default(cuid())
-  doctorId     String
-  doctor       Doctor  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  day          Weekday
-  startTime    String // "10:00"
-  endTime      String // "13:00"
-  tokenMinutes Int     @default(15)
+  id        String  @id @default(cuid())
+  doctorId  String
+  doctor    Doctor  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  day       Weekday
+  startTime String // "10:00"
+  endTime   String // "13:00"
+
+  // Default booking closing time for sessions created from this rule, clinic local time ("09:30").
+  // null = booking closes when the session ends.
+  bookingCloseTime String?
 
   @@unique([doctorId, day, startTime])
   @@index([doctorId])
 }
 
-model TimeSlot {
-  id           String    @id @default(cuid())
+// One doctor's clinic session on one date. It holds the booking window and the live queue.
+// Created from a DoctorSchedule row. Each session has its own independent queue.
+model DoctorSession {
+  id           String   @id @default(cuid())
   doctorId     String
-  doctor       Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  date         DateTime  @db.Date
-  startTime    String // "10:00"
+  doctor       Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  date         DateTime @db.Date // calendar date in the clinic's time zone
+  startTime    String // "10:00" (display only, patients do not pick a time)
   endTime      String // "13:00"
-  tokenMinutes Int       @default(15)
-  maxTokens    Int
-  isClosed     Boolean   @default(false)
-  bookings     Booking[]
+
+  // Token numbers are handed out by increasing this counter inside a transaction
+  lastTokenNumber Int @default(0)
+
+  // Booking window, controlled by the clinic. Stored as exact moments (UTC).
+  bookingOpensAt  DateTime // default: midnight of `date` in the clinic's time zone
+  bookingClosesAt DateTime // set by the clinic, can be extended
+  bookingExtended Boolean  @default(false) // true once extended ("Booking Extended Until 8:00 PM")
+
+  // Manual switch: clinic sees enough tokens are booked and clicks "Close Booking".
+  // Patients see "Booking Over". Clinic can reopen it with a button.
+  bookingManuallyClosed Boolean @default(false)
+
+  // Queue state (changed only by clinic buttons)
+  queueStatus    QueueStatus @default(NOT_STARTED)
+  queueStartedAt DateTime?
+  queueEndedAt   DateTime?
+  // Bumped on every button click. Patient page polls this (no sockets)
+  queueVersion   Int         @default(0)
+
+  // The token being served right now. A session can only ever have one.
+  servingBookingId String?  @unique
+  servingBooking   Booking? @relation("SessionServing", fields: [servingBookingId], references: [id], onDelete: SetNull)
+
+  bookings  Booking[] @relation("SessionBookings")
+  createdAt DateTime  @default(now())
 
   @@unique([doctorId, date, startTime])
   @@index([doctorId, date])
 }
 
 model Booking {
-  id          String        @id @default(cuid())
-  tokenNumber Int
-  status      BookingStatus @default(PENDING)
-  patientName String?
-  userId      String
-  user        User          @relation(fields: [userId], references: [id])
-  clinicId    String
-  clinic      Clinic        @relation(fields: [clinicId], references: [id])
-  slotId      String
-  slot        TimeSlot      @relation(fields: [slotId], references: [id], onDelete: Cascade)
-  createdAt   DateTime      @default(now())
-  completedAt DateTime?
+  id            String        @id @default(cuid())
+  tokenNumber   Int // never changes, used for identification and history
+  queuePosition Int // order in the queue, changes only when a token is skipped
+  status        BookingStatus @default(CONFIRMED)
+  patientName   String?
 
-  @@unique([slotId, tokenNumber])
+  // Only used to show a "Skipped" badge. There is no skip limit.
+  skipCount     Int       @default(0)
+  lastSkippedAt DateTime?
+
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+  clinicId String
+  clinic   Clinic @relation(fields: [clinicId], references: [id])
+
+  sessionId String
+  session   DoctorSession  @relation("SessionBookings", fields: [sessionId], references: [id], onDelete: Cascade)
+  servingIn DoctorSession? @relation("SessionServing")
+
+  createdAt   DateTime  @default(now())
+  calledAt    DateTime? // when the token became SERVING
+  completedAt DateTime?
+  cancelledAt DateTime?
+
+  @@unique([sessionId, tokenNumber])
   @@index([userId])
   @@index([clinicId, status])
-  @@index([slotId, status])
+  @@index([sessionId, status, queuePosition])
 }
