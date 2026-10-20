@@ -8,7 +8,7 @@ import {
 
 const userItems: NavItem[] = [
   { label: "Dashboard", href: "/user", icon: LayoutDashboard },
-  { label: "My Bookings", href: "/user/myBooking", icon: CalendarCheck },
+  { label: "My Bookings", href: "/user/my-tokens", icon: CalendarCheck },
   { label: "Book Clinic", href: "/user/book-clinic", icon: UserCheck  },
   { label: "Create Your Clinic", href: "/create-your-clinic", icon: PlusCircle },
 ];

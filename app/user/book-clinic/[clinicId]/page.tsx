@@ -101,7 +101,7 @@ function DoctorCard({ doctor, onBook }: { doctor: Doctor; onBook: () => void }) 
       <div className="mt-4 space-y-2">
         {summarizeSchedule(doctor.schedules).map((l) => (
           <div
-            key={`${l.daysLabel}-${l.startTime}`}
+            key={`${l.daysLabel}-${l.startTime}-${l.endTime}`}
             className="flex items-start gap-2.5 rounded-xl bg-white/50 px-3 py-2 ring-1 ring-white/70"
           >
             <Clock size={15} className="mt-0.5 shrink-0 text-indigo-400" aria-hidden="true" />
@@ -114,7 +114,9 @@ function DoctorCard({ doctor, onBook }: { doctor: Doctor; onBook: () => void }) 
                 </span>
               </p>
               <p className="text-xs text-slate-500">
-                {l.tokens} tokens a day, {l.tokenMinutes} minutes each
+                {l.bookingCloseTime
+                  ? `Booking closes at ${formatTime(l.bookingCloseTime)}`
+                  : "Booking closes when the doctor finishes"}
               </p>
             </div>
           </div>
@@ -144,7 +146,7 @@ export default function ClinicPage() {
     } catch (err) {
       setLoadError(
         (axios.isAxiosError(err) && err.response?.data?.message) ||
-          "Could not load the clinic. Please try again."
+        "Could not load the clinic. Please try again."
       );
     }
   }, [getToken, clinicId]);
@@ -190,7 +192,7 @@ export default function ClinicPage() {
       {/* Clinic info */}
       <div className={`${glass} p-6`}>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 text-indigo-600 shadow-sm ring-2 ring-white/80">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-linear-to-br from-blue-100 to-indigo-100 text-indigo-600 shadow-sm ring-2 ring-white/80">
             {clinic.logo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={clinic.logo} alt={clinic.name} className="h-full w-full object-cover" />

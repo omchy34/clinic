@@ -122,7 +122,7 @@ export default function BookTokenModal({
   if (confirmed) {
     body = (
       <div className="flex flex-col items-center px-6 py-12 text-center">
-        <span className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-500/30">
+        <span className="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-500/30">
           <CheckCircle2 size={40} aria-hidden="true" />
         </span>
         <h3 className="mt-5 text-xl font-bold text-slate-800">Token booked</h3>
