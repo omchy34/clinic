@@ -3,13 +3,11 @@ import { Fraunces, Public_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-fraunces",
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
-  display: "swap",
-});
+   const fraunces = Fraunces({
+     subsets: ["latin"],
+     variable: "--font-fraunces",
+     display: "swap",
+   });
 
 const publicSans = Public_Sans({
   subsets: ["latin"],
