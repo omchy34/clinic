@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
 import { useAuth } from "@clerk/nextjs";
-import { CheckCircle2, Clock, X } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, X } from "lucide-react";
 import type { BookingStatus } from "@/lib/booking";
 import {
   dateText,
@@ -16,10 +16,12 @@ import {
   type BookedToken,
   type PatientSession,
 } from "@/lib/patient-booking";
+import Reveal from "@/components/Reveal";
 
 // Glassmorphism tokens
 const ring = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
 const gradient = "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-indigo-500/30";
+const bar = "rounded-full bg-slate-200/80";
 
 const CHIP: Record<BookingStatus, string> = {
   OPEN: "bg-emerald-50 text-emerald-700 ring-emerald-200",
@@ -41,6 +43,33 @@ function SessionNote({ s, date }: { s: PatientSession; date: string }) {
   else text = "Booking is closed for this session.";
 
   return <p className="mt-2 text-xs text-slate-500">{text}</p>;
+}
+
+// Same shape as the real content (date chips and session cards), shown while sessions load
+function ModalSkeleton() {
+  return (
+    <div className="space-y-5 px-6 py-5 motion-safe:animate-pulse" aria-busy="true">
+      <p role="status" className="sr-only">
+        Loading sessions
+      </p>
+      <div className="flex gap-2">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className={`${bar} h-9 w-20 shrink-0`} />
+        ))}
+      </div>
+      {[0, 1].map((i) => (
+        <div key={i} className="rounded-2xl border border-white/80 bg-white/60 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className={`${bar} h-4 w-1/2`} />
+            <div className={`${bar} h-5 w-16`} />
+          </div>
+          <div className={`${bar} mt-3 h-3 w-2/3`} />
+          <div className={`${bar} mt-3 h-3 w-1/3`} />
+          <div className="mt-3 h-9 rounded-xl bg-slate-200/80" />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function BookTokenModal({
@@ -122,23 +151,29 @@ export default function BookTokenModal({
   if (confirmed) {
     body = (
       <div className="flex flex-col items-center px-6 py-12 text-center">
-        <span className="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-500/30">
-          <CheckCircle2 size={40} aria-hidden="true" />
-        </span>
-        <h3 className="mt-5 text-xl font-bold text-slate-800">Token booked</h3>
-        <div className="mt-4 w-full max-w-xs rounded-2xl border border-white/70 bg-white/60 p-4 backdrop-blur-md">
-          <p className="text-sm font-semibold text-slate-800">{doctor.name}</p>
-          <p className="mt-1 text-3xl font-bold text-indigo-600">Token #{confirmed.tokenNumber}</p>
-          <p className="mt-1 text-sm text-slate-500">
-            {dateText(confirmed.date)}, doctor sits {formatHHmm(confirmed.startTime)} to{" "}
-            {formatHHmm(confirmed.endTime)}
-          </p>
-          <p className="mt-2 text-sm text-slate-600">
-            {confirmed.ahead === 0
-              ? "You are first in line."
-              : `${confirmed.ahead} ${confirmed.ahead === 1 ? "patient is" : "patients are"} ahead of you.`}
-          </p>
-        </div>
+        <Reveal pop>
+          <span className="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-500/30">
+            <CheckCircle2 size={40} aria-hidden="true" />
+          </span>
+        </Reveal>
+        <Reveal index={1}>
+          <h3 className="mt-5 text-xl font-bold text-slate-800">Token booked</h3>
+        </Reveal>
+        <Reveal index={2} className="w-full max-w-xs">
+          <div className="mt-4 w-full rounded-2xl border border-white/70 bg-white/60 p-4 backdrop-blur-md">
+            <p className="text-sm font-semibold text-slate-800">{doctor.name}</p>
+            <p className="mt-1 text-3xl font-bold text-indigo-600">Token #{confirmed.tokenNumber}</p>
+            <p className="mt-1 text-sm text-slate-500">
+              {dateText(confirmed.date)}, doctor sits {formatHHmm(confirmed.startTime)} to{" "}
+              {formatHHmm(confirmed.endTime)}
+            </p>
+            <p className="mt-2 text-sm text-slate-600">
+              {confirmed.ahead === 0
+                ? "You are first in line."
+                : `${confirmed.ahead} ${confirmed.ahead === 1 ? "patient is" : "patients are"} ahead of you.`}
+            </p>
+          </div>
+        </Reveal>
         <Link
           href="/user/my-tokens"
           className={`mt-6 rounded-xl px-8 py-2.5 text-sm font-semibold transition hover:opacity-90 ${gradient} ${ring}`}
@@ -168,7 +203,7 @@ export default function BookTokenModal({
       </div>
     );
   } else if (!availability) {
-    body = <div className="m-6 h-48 rounded-2xl bg-white/50 motion-safe:animate-pulse" aria-busy="true" />;
+    body = <ModalSkeleton />;
   } else if (availability.days.length === 0) {
     body = (
       <p className="px-6 py-12 text-center text-sm text-slate-500">
@@ -202,61 +237,63 @@ export default function BookTokenModal({
             ))}
           </div>
 
-          {/* Sessions: patients choose a session, never a time slot */}
-          {day?.sessions.map((s) => {
+          {/* Sessions: patients choose a session, never a time slot.
+              The key includes the date, so the cards animate in again when the date changes. */}
+          {day?.sessions.map((s, i) => {
             const selected = s.id === sessionId;
             return (
-              <div
-                key={s.id}
-                className={`rounded-2xl border p-4 transition ${
-                  selected
-                    ? "border-indigo-400 bg-white ring-2 ring-indigo-300"
-                    : "border-white/80 bg-white/60"
-                }`}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                    <Clock size={15} className="text-indigo-400" aria-hidden="true" />
-                    Doctor sits {formatHHmm(s.startTime)} to {formatHHmm(s.endTime)}
-                  </p>
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${CHIP[s.status]}`}
-                  >
-                    {s.notOpenYet ? "Not open yet" : s.label}
-                  </span>
-                </div>
-
-                <SessionNote s={s} date={day.date} />
-
-                <p className="mt-2 text-sm text-slate-600">
-                  {s.waiting} waiting
-                  {s.queueStatus === "ACTIVE" && s.nowServing !== null && <> · Now serving #{s.nowServing}</>}
-                </p>
-
-                {s.mine.length > 0 && (
-                  <p className="mt-2 rounded-lg bg-indigo-50/80 px-3 py-1.5 text-sm font-medium text-indigo-700">
-                    Your {s.mine.length === 1 ? "token" : "tokens"}:{" "}
-                    {s.mine.map((m) => `#${m.tokenNumber}`).join(", ")}
-                  </p>
-                )}
-
-                <button
-                  type="button"
-                  disabled={!s.canBook}
-                  aria-pressed={selected}
-                  onClick={() => {
-                    setSessionId(s.id);
-                    setSubmitError(null);
-                  }}
-                  className={`mt-3 w-full rounded-xl border px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${ring} ${
+              <Reveal key={`${day.date}-${s.id}`} index={i}>
+                <div
+                  className={`rounded-2xl border p-4 transition ${
                     selected
-                      ? "border-transparent bg-indigo-600 text-white"
-                      : "border-white/80 bg-white/70 text-slate-800 hover:bg-white"
+                      ? "border-indigo-400 bg-white ring-2 ring-indigo-300"
+                      : "border-white/80 bg-white/60"
                   }`}
                 >
-                  {selected ? "Selected" : s.canBook ? "Select this session" : "Booking unavailable"}
-                </button>
-              </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                      <Clock size={15} className="text-indigo-400" aria-hidden="true" />
+                      Doctor sits {formatHHmm(s.startTime)} to {formatHHmm(s.endTime)}
+                    </p>
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${CHIP[s.status]}`}
+                    >
+                      {s.notOpenYet ? "Not open yet" : s.label}
+                    </span>
+                  </div>
+
+                  <SessionNote s={s} date={day.date} />
+
+                  <p className="mt-2 text-sm text-slate-600">
+                    {s.waiting} waiting
+                    {s.queueStatus === "ACTIVE" && s.nowServing !== null && <> · Now serving #{s.nowServing}</>}
+                  </p>
+
+                  {s.mine.length > 0 && (
+                    <p className="mt-2 rounded-lg bg-indigo-50/80 px-3 py-1.5 text-sm font-medium text-indigo-700">
+                      Your {s.mine.length === 1 ? "token" : "tokens"}:{" "}
+                      {s.mine.map((m) => `#${m.tokenNumber}`).join(", ")}
+                    </p>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={!s.canBook}
+                    aria-pressed={selected}
+                    onClick={() => {
+                      setSessionId(s.id);
+                      setSubmitError(null);
+                    }}
+                    className={`mt-3 w-full rounded-xl border px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${ring} ${
+                      selected
+                        ? "border-transparent bg-indigo-600 text-white"
+                        : "border-white/80 bg-white/70 text-slate-800 hover:bg-white"
+                    }`}
+                  >
+                    {selected ? "Selected" : s.canBook ? "Select this session" : "Booking unavailable"}
+                  </button>
+                </div>
+              </Reveal>
             );
           })}
         </div>
@@ -280,9 +317,19 @@ export default function BookTokenModal({
             type="button"
             onClick={book}
             disabled={!picked || submitting}
-            className={`w-full rounded-xl px-5 py-3 text-sm font-semibold transition hover:opacity-90 disabled:opacity-50 ${gradient} ${ring}`}
+            aria-busy={submitting}
+            className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition hover:opacity-90 disabled:opacity-50 ${gradient} ${ring}`}
           >
-            {submitting ? "Booking..." : picked ? "Book my token" : "Select a session"}
+            {submitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                Booking...
+              </>
+            ) : picked ? (
+              "Book my token"
+            ) : (
+              "Select a session"
+            )}
           </button>
           <p className="text-center text-xs text-slate-500">
             You get the next token number in the queue. There is no fixed time, so we show an estimate after booking.

@@ -4,10 +4,14 @@ import { prisma } from "@/lib/prisma";
 
 const json = (message: string, status: number) => NextResponse.json({ message }, { status });
 
-type Ctx = { params: Promise<{ id: string }> };
+type Ctx = { params: Promise<{ bookingId: string }> };
 
 export async function PATCH(_req: Request, { params }: Ctx) {
-    const { id } = await params;
+    const { bookingId } = await params;
+
+    // Never let an undefined id reach Prisma: it would drop the id filter from the query
+    if (!bookingId) return json("Token id is missing", 400);
+
     const { userId } = await auth();
     if (!userId) return json("unauthorized", 401);
 
@@ -16,7 +20,7 @@ export async function PATCH(_req: Request, { params }: Ctx) {
             // One conditional update: only YOUR token, only while it is waiting in the queue
             const { count } = await tx.booking.updateMany({
                 where: {
-                    id,
+                    id: bookingId,
                     userId,
                     status: "CONFIRMED", // not SERVING, not COMPLETED, not CANCELLED
                     session: { queueStatus: { not: "ENDED" } },
@@ -26,7 +30,7 @@ export async function PATCH(_req: Request, { params }: Ctx) {
             if (count === 0) return false;
 
             const booking = await tx.booking.findUnique({
-                where: { id },
+                where: { id: bookingId },
                 select: { sessionId: true },
             });
             // patient and clinic pages poll this number, so they refresh right away
@@ -37,27 +41,26 @@ export async function PATCH(_req: Request, { params }: Ctx) {
             return true;
         });
 
-        if (cancelled) return NextResponse.json({ id, status: "CANCELLED" });
+        if (cancelled) return NextResponse.json({ id: bookingId, status: "CANCELLED" });
 
         // Nothing was cancelled: find out why, so the patient gets a clear message
         const booking = await prisma.booking.findFirst({
-            where: { id, userId },
+            where: { id: bookingId, userId },
             select: { status: true, session: { select: { queueStatus: true } } },
         });
         if (!booking) return json("Token not found", 404);
 
-        switch (booking.status) {
-            case "SERVING":
-                return json("The doctor is already seeing you, so this token can no longer be cancelled", 409);
-            case "COMPLETED":
-                return json("This token is already completed", 409);
-            case "CANCELLED":
-                return json("This token is already cancelled", 409);
-            default:
-                return json("This session has ended", 409);
+        if (booking.status === "SERVING") {
+            return json("The doctor is already seeing you, so this token can no longer be cancelled", 409);
         }
+        if (booking.status === "COMPLETED") return json("This token is already completed", 409);
+        if (booking.status === "CANCELLED") return json("This token is already cancelled", 409);
+        if (booking.session.queueStatus === "ENDED") return json("This session has ended", 409);
+
+        // still CONFIRMED and the session is running: it changed while we were checking
+        return json("This token just changed. Please refresh and try again.", 409);
     } catch (err) {
-        console.error("PATCH /api/user/bookings/[id]/cancel", err);
+        console.error("PATCH /api/clinic/appointments/[bookingId]/cancel", err);
         return json("Could not cancel the token. Please try again.", 500);
     }
 }

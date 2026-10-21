@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
 import { useAuth } from "@clerk/nextjs";
-import { Clock, MapPin, Navigation, Plus, RefreshCw, Stethoscope, TicketX } from "lucide-react";
+import { Clock, Loader2, MapPin, Navigation, Plus, RefreshCw, Stethoscope, TicketX } from "lucide-react";
 import { addDays, formatClock, todayIn } from "@/lib/booking";
 import {
   TOKEN_POLL_MS,
@@ -18,6 +18,7 @@ import {
   waitText,
   type MyToken,
 } from "@/lib/patient-booking";
+import Reveal from "@/components/Reveal";
 
 const ENDPOINT = "/api/user/bookings";
 const cancelEndpoint = (id: string) => `/api/clinic/appointments/${id}/cancel`;
@@ -27,6 +28,7 @@ const ring = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring
 const glass =
   "rounded-2xl border border-white/60 bg-white/60 shadow-[0_8px_30px_rgba(79,70,229,0.08)] backdrop-blur-xl";
 const gradient = "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-indigo-500/30";
+const bar = "rounded-full bg-slate-200/80";
 
 /* -------------------------------- helpers -------------------------------- */
 
@@ -79,7 +81,7 @@ function Avatar({ t, size }: { t: MyToken; size: "md" | "sm" }) {
   const box = size === "md" ? "h-12 w-12 rounded-2xl" : "h-9 w-9 rounded-xl";
   return (
     <div
-      className={`flex ${box} shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-blue-100 to-indigo-100 text-indigo-600 ring-2 ring-white/80`}
+      className={`flex ${box} shrink-0 items-center justify-center overflow-hidden bg-linear-to-br from-blue-100 to-indigo-100 text-indigo-600 ring-2 ring-white/80`}
     >
       {t.doctor.image ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -101,129 +103,179 @@ function Stat({ label, value, note }: { label: string; value: string; note?: str
   );
 }
 
-function ActiveCard({ t, onCancel }: { t: MyToken; onCancel: (t: MyToken) => void }) {
-  const serving = t.status === "SERVING";
-  const est = estimateText(t);
-
+// Same shape as an active card, so the layout does not jump when the data arrives
+function SkeletonCard() {
   return (
-    <li className={`${glass} p-5 ${serving ? "ring-2 ring-emerald-400" : ""}`}>
+    <li className={`${glass} p-5 motion-safe:animate-pulse`}>
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <Avatar t={t} size="md" />
-          <div className="min-w-0">
-            <h3 className="truncate text-base font-semibold text-slate-800">{t.doctor.name}</h3>
-            <p className="truncate text-sm text-slate-500">{t.clinic.name}</p>
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="h-12 w-12 shrink-0 rounded-2xl bg-slate-200/80" />
+          <div className="flex-1 space-y-2">
+            <div className={`${bar} h-4 w-1/2`} />
+            <div className={`${bar} h-3 w-1/3`} />
           </div>
         </div>
-        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${badgeClass(t)}`}>
-          {tokenStatusText(t)}
-        </span>
+        <div className={`${bar} h-6 w-20 shrink-0`} />
       </div>
 
       <div className="mt-4 flex items-stretch gap-3">
-        <div
-          className={`flex w-24 shrink-0 flex-col items-center justify-center rounded-2xl px-2 py-3 text-white shadow-md ${
-            serving
-              ? "bg-gradient-to-br from-emerald-500 to-teal-500 shadow-emerald-500/30"
-              : "bg-gradient-to-br from-blue-600 to-indigo-600 shadow-indigo-500/30"
-          }`}
-        >
-          <span className="text-xs opacity-80">Token</span>
-          <span className="text-3xl font-bold leading-tight">#{t.tokenNumber}</span>
+        <div className="h-24 w-24 shrink-0 rounded-2xl bg-slate-200/80" />
+        <div className="grid flex-1 gap-2 sm:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-16 rounded-xl bg-slate-200/80" />
+          ))}
         </div>
-
-        {serving ? (
-          <p className="flex flex-1 items-center rounded-xl bg-emerald-50 px-4 text-sm font-medium text-emerald-700">
-            The doctor is ready for you. Please go in now.
-          </p>
-        ) : (
-          <div className="grid flex-1 gap-2 sm:grid-cols-3">
-            <Stat label="Now serving" value={t.nowServing !== null ? `#${t.nowServing}` : "Not started"} />
-            <Stat label="Ahead of you" value={String(t.ahead)} />
-            <Stat label="Estimated wait" value={est.value} note={est.note} />
-          </div>
-        )}
       </div>
 
-      {t.patientName && (
-        <p className="mt-3 text-xs text-slate-500">
-          Booked for <span className="font-medium text-slate-700">{t.patientName}</span>
-        </p>
-      )}
-
-      <div className="mt-4 space-y-1.5 border-t border-white/70 pt-3 text-sm text-slate-600">
-        <p className="flex items-center gap-1.5">
-          <Clock size={14} className="shrink-0 text-indigo-400" aria-hidden="true" />
-          {dayLabel(t)}, doctor sits {formatHHmm(t.startTime)} to {formatHHmm(t.endTime)}
-        </p>
-        <div className="flex items-center justify-between gap-3">
-          <p className="flex min-w-0 items-center gap-1.5">
-            <MapPin size={14} className="shrink-0 text-indigo-400" aria-hidden="true" />
-            <span className="truncate" title={`${t.clinic.address}, ${t.clinic.city}`}>
-              {t.clinic.address}
-            </span>
-          </p>
-          <a
-            href={mapsUrl(t)}
-            target="_blank"
-            rel="noreferrer"
-            className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50 ${ring}`}
-          >
-            <Navigation size={12} aria-hidden="true" /> Directions
-          </a>
-        </div>
-
-        {canCancel(t) && (
-          <div className="flex justify-end pt-1.5">
-            <button
-              type="button"
-              onClick={() => onCancel(t)}
-              className={`inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-white/70 px-3.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 ${ring}`}
-            >
-              <TicketX size={14} aria-hidden="true" /> Cancel token
-            </button>
-          </div>
-        )}
+      <div className="mt-4 space-y-2 border-t border-white/70 pt-3">
+        <div className={`${bar} h-3 w-2/3`} />
+        <div className={`${bar} h-3 w-5/6`} />
       </div>
     </li>
   );
 }
 
-// Finished tokens: one compact row each
-function PastRow({ t }: { t: MyToken }) {
+function ActiveCard({
+  t,
+  index,
+  onCancel,
+}: {
+  t: MyToken;
+  index: number;
+  onCancel: (t: MyToken) => void;
+}) {
+  const serving = t.status === "SERVING";
+  const est = estimateText(t);
+
   return (
-    <li className={`${glass} flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3`}>
-      <span className="w-12 shrink-0 text-lg font-bold text-slate-400">#{t.tokenNumber}</span>
-      <Avatar t={t} size="sm" />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-slate-800">
-          {t.doctor.name} <span className="font-normal text-slate-500">· {t.clinic.name}</span>
-        </p>
-        <p className="text-xs text-slate-500">
-          {dayLabel(t)}, {formatHHmm(t.startTime)} to {formatHHmm(t.endTime)}
-        </p>
-      </div>
-      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${badgeClass(t)}`}>
-        {tokenStatusText(t)}
-      </span>
+    <li>
+      <Reveal index={index} className="h-full">
+        <div className={`${glass} h-full p-5 ${serving ? "ring-2 ring-emerald-400" : ""}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <Avatar t={t} size="md" />
+              <div className="min-w-0">
+                <h3 className="truncate text-base font-semibold text-slate-800">{t.doctor.name}</h3>
+                <p className="truncate text-sm text-slate-500">{t.clinic.name}</p>
+              </div>
+            </div>
+            <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${badgeClass(t)}`}>
+              {tokenStatusText(t)}
+            </span>
+          </div>
+
+          <div className="mt-4 flex items-stretch gap-3">
+            <div
+              className={`flex w-24 shrink-0 flex-col items-center justify-center rounded-2xl px-2 py-3 text-white shadow-md ${
+                serving
+                  ? "bg-linear-to-br from-emerald-500 to-teal-500 shadow-emerald-500/30"
+                  : "bg-linear-to-br from-blue-600 to-indigo-600 shadow-indigo-500/30"
+              }`}
+            >
+              <span className="text-xs opacity-80">Token</span>
+              <span className="text-3xl font-bold leading-tight">#{t.tokenNumber}</span>
+            </div>
+
+            {serving ? (
+              <p className="flex flex-1 items-center rounded-xl bg-emerald-50 px-4 text-sm font-medium text-emerald-700">
+                The doctor is ready for you. Please go in now.
+              </p>
+            ) : (
+              <div className="grid flex-1 gap-2 sm:grid-cols-3">
+                <Stat label="Now serving" value={t.nowServing !== null ? `#${t.nowServing}` : "Not started"} />
+                <Stat label="Ahead of you" value={String(t.ahead)} />
+                <Stat label="Estimated wait" value={est.value} note={est.note} />
+              </div>
+            )}
+          </div>
+
+          {t.patientName && (
+            <p className="mt-3 text-xs text-slate-500">
+              Booked for <span className="font-medium text-slate-700">{t.patientName}</span>
+            </p>
+          )}
+
+          <div className="mt-4 space-y-1.5 border-t border-white/70 pt-3 text-sm text-slate-600">
+            <p className="flex items-center gap-1.5">
+              <Clock size={14} className="shrink-0 text-indigo-400" aria-hidden="true" />
+              {dayLabel(t)}, doctor sits {formatHHmm(t.startTime)} to {formatHHmm(t.endTime)}
+            </p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="flex min-w-0 items-center gap-1.5">
+                <MapPin size={14} className="shrink-0 text-indigo-400" aria-hidden="true" />
+                <span className="truncate" title={`${t.clinic.address}, ${t.clinic.city}`}>
+                  {t.clinic.address}
+                </span>
+              </p>
+              <a
+                href={mapsUrl(t)}
+                target="_blank"
+                rel="noreferrer"
+                className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50 ${ring}`}
+              >
+                <Navigation size={12} aria-hidden="true" /> Directions
+              </a>
+            </div>
+
+            {canCancel(t) && (
+              <div className="flex justify-end pt-1.5">
+                <button
+                  type="button"
+                  onClick={() => onCancel(t)}
+                  className={`inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-white/70 px-3.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 ${ring}`}
+                >
+                  <TicketX size={14} aria-hidden="true" /> Cancel token
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </Reveal>
+    </li>
+  );
+}
+
+// Finished tokens: one compact row each
+function PastRow({ t, index }: { t: MyToken; index: number }) {
+  return (
+    <li>
+      <Reveal index={index}>
+        <div className={`${glass} flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3`}>
+          <span className="w-12 shrink-0 text-lg font-bold text-slate-400">#{t.tokenNumber}</span>
+          <Avatar t={t} size="sm" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-slate-800">
+              {t.doctor.name} <span className="font-normal text-slate-500">· {t.clinic.name}</span>
+            </p>
+            <p className="text-xs text-slate-500">
+              {dayLabel(t)}, {formatHHmm(t.startTime)} to {formatHHmm(t.endTime)}
+            </p>
+          </div>
+          <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${badgeClass(t)}`}>
+            {tokenStatusText(t)}
+          </span>
+        </div>
+      </Reveal>
     </li>
   );
 }
 
 function EmptyState({ title, text, showBook }: { title: string; text: string; showBook?: boolean }) {
   return (
-    <div className="rounded-2xl border-2 border-dashed border-white/80 bg-white/40 p-10 text-center backdrop-blur-md">
-      <p className="font-semibold text-slate-800">{title}</p>
-      <p className="mt-1 text-sm text-slate-500">{text}</p>
-      {showBook && (
-        <Link
-          href="/user/book-clinic"
-          className={`mt-4 inline-flex rounded-xl px-5 py-2.5 text-sm font-semibold hover:opacity-90 ${gradient} ${ring}`}
-        >
-          Book a token
-        </Link>
-      )}
-    </div>
+    <Reveal>
+      <div className="rounded-2xl border-2 border-dashed border-white/80 bg-white/40 p-10 text-center backdrop-blur-md">
+        <p className="font-semibold text-slate-800">{title}</p>
+        <p className="mt-1 text-sm text-slate-500">{text}</p>
+        {showBook && (
+          <Link
+            href="/user/book-clinic"
+            className={`mt-4 inline-flex rounded-xl px-5 py-2.5 text-sm font-semibold hover:opacity-90 ${gradient} ${ring}`}
+          >
+            Book a token
+          </Link>
+        )}
+      </div>
+    </Reveal>
   );
 }
 
@@ -293,9 +345,17 @@ function CancelDialog({
             type="button"
             onClick={onConfirm}
             disabled={busy}
-            className={`rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-rose-500/30 hover:bg-rose-700 disabled:opacity-60 ${ring}`}
+            aria-busy={busy}
+            className={`inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-rose-500/30 hover:bg-rose-700 disabled:opacity-60 ${ring}`}
           >
-            {busy ? "Cancelling..." : "Yes, cancel token"}
+            {busy ? (
+              <>
+                <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                Cancelling...
+              </>
+            ) : (
+              "Yes, cancel token"
+            )}
           </button>
         </div>
       </div>
@@ -432,11 +492,17 @@ export default function MyTokensPage() {
         </button>
       </div>
     ) : (
-      <ul className="grid gap-4 lg:grid-cols-2" aria-busy="true" aria-label="Loading your tokens">
-        {[0, 1].map((i) => (
-          <li key={i} className={`${glass} h-56 motion-safe:animate-pulse`} />
-        ))}
-      </ul>
+      <div aria-busy="true">
+        <p role="status" className="sr-only">
+          Loading your tokens
+        </p>
+        <div className={`${bar} mb-3 h-4 w-20 motion-safe:animate-pulse`} />
+        <ul className="grid gap-4 lg:grid-cols-2">
+          {[0, 1].map((i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </ul>
+      </div>
     );
   } else if (view === "active") {
     body =
@@ -452,8 +518,8 @@ export default function MyTokensPage() {
             <section key={label} aria-label={label}>
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{label}</h2>
               <ul className="grid gap-4 lg:grid-cols-2">
-                {list.map((t) => (
-                  <ActiveCard key={t.id} t={t} onCancel={openCancel} />
+                {list.map((t, i) => (
+                  <ActiveCard key={t.id} t={t} index={i} onCancel={openCancel} />
                 ))}
               </ul>
             </section>
@@ -466,8 +532,8 @@ export default function MyTokensPage() {
         <EmptyState title="Nothing here yet" text="Completed and cancelled tokens show up here." />
       ) : (
         <ul className="space-y-2.5">
-          {past.map((t) => (
-            <PastRow key={t.id} t={t} />
+          {past.map((t, i) => (
+            <PastRow key={t.id} t={t} index={i} />
           ))}
         </ul>
       );
@@ -482,7 +548,7 @@ export default function MyTokensPage() {
     <div className="mx-auto w-full max-w-6xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
+          <h1 className="bg-linear-to-r from-blue-700 to-indigo-600 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
             My Bookings
           </h1>
           <p className="mt-1.5 text-sm text-slate-500">
