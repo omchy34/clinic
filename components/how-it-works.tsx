@@ -145,7 +145,7 @@ export default function HowItWorks() {
       {/* Soft dot texture, fades out toward the bottom */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 [background-image:radial-gradient(circle_at_1px_1px,rgba(5,150,105,0.14)_1px,transparent_0)] [background-size:24px_24px] [mask-image:linear-gradient(to_bottom,black,transparent_70%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(5,150,105,0.14)_1px,transparent_0)] bg-size-[24px_24px] mask-[linear-gradient(to_bottom,black,transparent_70%)]"
       />
       {/* Glow, echoes the offset shape behind the hero photo */}
       <div

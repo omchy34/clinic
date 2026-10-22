@@ -68,7 +68,7 @@ export default function Footer() {
         <div className="relative overflow-hidden rounded-3xl bg-emerald-600 px-6 py-10 shadow-[0_30px_60px_-30px_rgba(5,150,105,0.8)] sm:px-10 sm:py-12 lg:px-14 lg:py-14">
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 [background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.16)_1px,transparent_0)] [background-size:22px_22px] [mask-image:linear-gradient(to_left,black,transparent_75%)]"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.16)_1px,transparent_0)] bg-size-[22px_22px] mask-[linear-gradient(to_left,black,transparent_75%)]"
           />
           <div
             aria-hidden
