@@ -23,7 +23,15 @@ import {
   type MyToken,
   type PatientSession,
 } from "@/lib/patient-booking";
+import { razorpay } from "@/lib/razorpay";
 
+const PAYMENT_WINDOW_MS = 10 * 60 * 1000; // payment ke liye 10 min
+const DEFAULT_TOKEN_PRICE = 2000; // ₹20, agar admin ne abhi tak set nahi kiya
+
+export type BookTokenResult = BookedToken & {
+  free: boolean;
+  payment?: { orderId: string; amount: number; keyId: string };
+};
 /* ---------------------------------- auth ---------------------------------- */
 
 export async function requireUser(): Promise<{ userId: string } | { error: NextResponse }> {
@@ -111,15 +119,17 @@ function closedMessage(status: BookingStatus, opensAt: Date, now: Date): string 
 }
 
 // Gives the patient the next token number of a session. Rejects when the window is closed.
+// Free session: token seedha CONFIRMED. Paid session: PENDING_PAYMENT + Razorpay order.
 export async function bookToken(
   userId: string,
   sessionId: string,
   patientName?: string
-): Promise<BookedToken> {
+): Promise<BookTokenResult> {
   const session = await prisma.doctorSession.findUnique({
     where: { id: sessionId },
     select: {
       queueStatus: true,
+      cancelledAt: true,
       bookingOpensAt: true,
       bookingClosesAt: true,
       bookingExtended: true,
@@ -127,7 +137,7 @@ export async function bookToken(
       doctor: { select: { isActive: true, clinicId: true, clinic: { select: { isApproved: true } } } },
     },
   });
-  if (!session || !session.doctor.isActive || !session.doctor.clinic.isApproved) {
+  if (!session || session.cancelledAt || !session.doctor.isActive || !session.doctor.clinic.isApproved) {
     throw new ApiError(404, "This session is not available.");
   }
 
@@ -137,13 +147,40 @@ export async function bookToken(
     throw new ApiError(409, closedMessage(status, session.bookingOpensAt, now));
   }
 
-  return prisma.$transaction(async (tx) => {
+  // Payment adhoori chhodi thi: naya token nahi, wahi order dobara do
+  const pending = await prisma.booking.findFirst({
+    where: {
+      userId,
+      sessionId,
+      status: "PENDING_PAYMENT",
+      expiresAt: { gt: now },
+      payment: { isNot: null },
+    },
+    select: { id: true, tokenNumber: true, amount: true, payment: { select: { razorpayOrderId: true } } },
+  });
+  if (pending?.payment) {
+    const ahead = await prisma.booking.count({ where: { sessionId, status: "CONFIRMED" } });
+    return {
+      id: pending.id,
+      tokenNumber: pending.tokenNumber,
+      ahead,
+      free: false,
+      payment: {
+        orderId: pending.payment.razorpayOrderId,
+        amount: pending.amount,
+        keyId: process.env.RAZORPAY_KEY_ID!,
+      },
+    };
+  }
+
+  const created = await prisma.$transaction(async (tx) => {
     // The window is checked again inside the update, so a clinic that closes booking
     // a moment earlier always wins. Updating the row also locks it, which makes
     // token numbers and queue positions come out one at a time.
     const claim = await tx.doctorSession.updateMany({
       where: {
         id: sessionId,
+        cancelledAt: null,
         bookingManuallyClosed: false,
         queueStatus: { not: "ENDED" },
         bookingOpensAt: { lte: now },
@@ -153,8 +190,16 @@ export async function bookToken(
     });
     if (claim.count === 0) throw new ApiError(409, "Booking has just closed for this session.");
 
+    // Unpaid (abhi expire nahi hua) token bhi active gina jayega
     const active = await tx.booking.count({
-      where: { sessionId, userId, status: { in: ["CONFIRMED", "SERVING"] } },
+      where: {
+        sessionId,
+        userId,
+        OR: [
+          { status: { in: ["CONFIRMED", "SERVING"] } },
+          { status: "PENDING_PAYMENT", expiresAt: { gt: now } },
+        ],
+      },
     });
     if (active >= MAX_ACTIVE_TOKENS) {
       throw new ApiError(409, `You already have ${MAX_ACTIVE_TOKENS} active tokens for this session.`);
@@ -164,6 +209,18 @@ export async function bookToken(
       where: { id: sessionId },
       select: { lastTokenNumber: true },
     });
+    const setting = await tx.platformSetting.findUnique({
+      where: { id: "global" },
+      select: { tokenPrice: true },
+    });
+    const tokenPrice = setting?.tokenPrice ?? DEFAULT_TOKEN_PRICE;
+
+    // Razorpay ka minimum order ₹1 (100 paise) hai
+    if (tokenPrice > 0 && tokenPrice < 100) {
+      throw new ApiError(500, "Token price is invalid. Please contact the clinic.");
+    }
+    const free = tokenPrice === 0;
+
     // New tokens go behind everyone, including tokens that were skipped to the end
     const last = await tx.booking.aggregate({ where: { sessionId }, _max: { queuePosition: true } });
     const ahead = await tx.booking.count({ where: { sessionId, status: "CONFIRMED" } });
@@ -172,6 +229,9 @@ export async function bookToken(
       data: {
         tokenNumber: lastTokenNumber,
         queuePosition: (last._max.queuePosition ?? 0) + 1,
+        status: free ? "CONFIRMED" : "PENDING_PAYMENT",
+        amount: tokenPrice,
+        expiresAt: free ? null : new Date(now.getTime() + PAYMENT_WINDOW_MS),
         patientName: patientName?.trim() || null,
         userId,
         clinicId: session.doctor.clinicId,
@@ -180,10 +240,48 @@ export async function bookToken(
       select: { id: true },
     });
 
-    return { id: booking.id, tokenNumber: lastTokenNumber, ahead };
+    return { id: booking.id, tokenNumber: lastTokenNumber, ahead, price: tokenPrice };
   });
-}
 
+  // Free token: payment ki zaroorat nahi
+  if (created.price === 0) {
+    return { id: created.id, tokenNumber: created.tokenNumber, ahead: created.ahead, free: true };
+  }
+
+  // Paid token: Razorpay order (network call, isliye transaction ke bahar)
+  try {
+    const order = await razorpay.orders.create({
+      amount: created.price,
+      currency: "INR",
+      receipt: created.id,
+      notes: { bookingId: created.id },
+    });
+    await prisma.payment.create({
+      data: { bookingId: created.id, amount: created.price, razorpayOrderId: order.id },
+    });
+
+    return {
+      id: created.id,
+      tokenNumber: created.tokenNumber,
+      ahead: created.ahead,
+      free: false,
+      payment: { orderId: order.id, amount: created.price, keyId: process.env.RAZORPAY_KEY_ID! },
+    };
+  } catch (err) {
+    console.error("bookToken: Razorpay order failed", err);
+    // Token chhod do, taaki queue me unpaid token na atke
+    await prisma.booking.updateMany({
+      where: { id: created.id, status: "PENDING_PAYMENT" },
+      data: {
+        status: "CANCELLED",
+        cancelledAt: new Date(),
+        cancelledBy: "SYSTEM",
+        cancelReason: "ORDER_CREATE_FAILED",
+      },
+    });
+    throw new ApiError(502, "Could not start the payment. Please try again.");
+  }
+}
 /* ------------------------------- my tokens -------------------------------- */
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
@@ -211,13 +309,29 @@ async function averageMinutes(doctorId: string): Promise<number> {
 // The patient's tokens for today and later, with live queue info and the estimated wait
 export async function loadMyTokens(userId: string): Promise<MyToken[]> {
   const rows = await prisma.booking.findMany({
-    where: { userId, session: { date: { gte: new Date(addDays(todayIn("UTC"), -1)) } } },
+    where: {
+      userId,
+      status: { in: ["CONFIRMED", "SERVING", "COMPLETED", "CANCELLED"] },
+      session: { date: { gte: new Date(addDays(todayIn("UTC"), -1)) } },
+    },
     orderBy: [{ session: { date: "asc" } }, { tokenNumber: "asc" }],
     select: {
       id: true,
       tokenNumber: true,
       queuePosition: true,
       status: true,
+      amount: true,
+      cancelledBy: true,
+      payment: {
+        select: {
+          status: true,
+          refunds: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { amount: true, deductedFee: true, status: true },
+          },
+        },
+      },
       patientName: true,
       skipCount: true,
       clinic: { select: { name: true, address: true, city: true, timezone: true } },
@@ -256,11 +370,15 @@ export async function loadMyTokens(userId: string): Promise<MyToken[]> {
       const date = s.date.toISOString().slice(0, 10);
       const timezone = b.clinic.timezone;
       const waiting = b.status === "CONFIRMED";
+      const paid = !!b.payment && (b.payment.status === "PAID" ||
+        b.payment.status === "PARTIALLY_REFUNDED" ||
+        b.payment.status === "REFUNDED");
+      const r = b.payment?.refunds[0];
 
       const ahead = waiting
         ? await prisma.booking.count({
-            where: { sessionId: s.id, status: "CONFIRMED", queuePosition: { lt: b.queuePosition } },
-          })
+          where: { sessionId: s.id, status: "CONFIRMED", queuePosition: { lt: b.queuePosition } },
+        })
         : 0;
 
       let estimate: MyToken["estimate"] = null;
@@ -291,7 +409,7 @@ export async function loadMyTokens(userId: string): Promise<MyToken[]> {
       return {
         id: b.id,
         tokenNumber: b.tokenNumber,
-        status: b.status,
+        status: b.status as MyToken["status"],
         skipCount: b.skipCount,
         patientName: b.patientName ?? "",
         date,
@@ -304,6 +422,9 @@ export async function loadMyTokens(userId: string): Promise<MyToken[]> {
         nowServing: s.servingBooking?.tokenNumber ?? null,
         ahead,
         estimate,
+        paidRupees: paid ? b.amount / 100 : 0,
+        cancelledBy: b.cancelledBy,
+        refund: r ? { rupees: r.amount / 100, feeRupees: r.deductedFee / 100, status: r.status } : null,
       };
     })
   );

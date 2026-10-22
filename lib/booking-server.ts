@@ -69,7 +69,12 @@ export async function requireClinic(): Promise<
 export async function ensureSessions(clinicId: string, date: string, timezone: string, doctorId?: string) {
   const schedules = await prisma.doctorSchedule.findMany({
     where: { day: weekdayOf(date), doctor: { clinicId, isActive: true, ...(doctorId ? { id: doctorId } : {}) } },
-    select: { doctorId: true, startTime: true, endTime: true, bookingCloseTime: true },
+    select: {
+      doctorId: true,
+      startTime: true,
+      endTime: true,
+      bookingCloseTime: true,
+    },
   });
   if (schedules.length === 0) return;
 
@@ -122,6 +127,7 @@ export async function loadAppointments(
       bookingManuallyClosed: true,
       doctor: { select: { id: true, name: true, image: true, specialtySlug: true, isActive: true } },
       bookings: {
+        where: { status: { in: ["CONFIRMED", "SERVING", "COMPLETED", "CANCELLED"] } },
         select: {
           id: true,
           tokenNumber: true,
@@ -144,7 +150,7 @@ export async function loadAppointments(
         id: b.id,
         tokenNumber: b.tokenNumber,
         queuePosition: b.queuePosition,
-        status: b.status,
+        status: b.status as TokenStatus,
         patientName: b.patientName ?? b.user.name,
         bookedBy: b.user.name,
         skipCount: b.skipCount,

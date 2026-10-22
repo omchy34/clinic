@@ -21,6 +21,7 @@
     "inngest": "^4.23.0",
     "lucide-react": "^1.56.0",
     "next": "16.4.0",
+    "razorpay": "^2.9.8",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "recharts": "^3.10.1"

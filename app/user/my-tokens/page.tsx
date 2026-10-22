@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
 import { useAuth } from "@clerk/nextjs";
-import { Clock, Loader2, MapPin, Navigation, Plus, RefreshCw, Stethoscope, TicketX } from "lucide-react";
+import { ChevronDown, Clock, Loader2, MapPin, MessageCircle, Navigation, Plus, RefreshCw, Stethoscope, TicketX } from "lucide-react";
 import { addDays, formatClock, todayIn } from "@/lib/booking";
 import {
   TOKEN_POLL_MS,
@@ -19,6 +19,16 @@ import {
   type MyToken,
 } from "@/lib/patient-booking";
 import Reveal from "@/components/Reveal";
+
+type RefundPreview = {
+  canCancel: boolean;
+  paid: boolean;
+  paidRupees: number;
+  refundRupees: number;
+  feeRupees: number;
+};
+
+const inr = (n: number) => `₹${Number.isInteger(n) ? n : n.toFixed(2)}`;
 
 const ENDPOINT = "/api/user/bookings";
 const cancelEndpoint = (id: string) => `/api/clinic/appointments/${id}/cancel`;
@@ -75,6 +85,34 @@ function estimateText(t: MyToken): { value: string; note?: string } {
   return { value: `About ${waitText(minutes)}`, note: around };
 }
 
+const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP; // "919876543210"
+
+function supportUrl(t: MyToken): string | null {
+  if (!SUPPORT_WHATSAPP) return null;
+  const text = `Hi, I need help with my cancelled token #${t.tokenNumber} (${t.doctor.name}, ${t.clinic.name}, ${dayLabel(t)}). Booking ID: ${t.id}`;
+  return `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(text)}`;
+}
+
+function cancelledByText(t: MyToken): string {
+  if (t.cancelledBy === "CLINIC") return "Cancelled by the clinic";
+  if (t.cancelledBy === "SYSTEM") return "Cancelled automatically";
+  return "Cancelled by you";
+}
+
+function refundStatusText(status: NonNullable<MyToken["refund"]>["status"]): string {
+  if (status === "FAILED") return "The refund could not be sent. Please chat with support.";
+  if (status === "PROCESSED") return "Refund sent to your bank. It can take 5 to 7 working days to show in your account.";
+  return "Refund in progress. It reaches your account in 5 to 7 working days.";
+}
+
+function DetailRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className={`flex justify-between gap-4 ${strong ? "font-semibold text-slate-800" : "text-slate-600"}`}>
+      <span>{label}</span>
+      <span className="shrink-0">{value}</span>
+    </div>
+  );
+}
 /* ------------------------------- components ------------------------------- */
 
 function Avatar({ t, size }: { t: MyToken; size: "md" | "sm" }) {
@@ -166,11 +204,10 @@ function ActiveCard({
 
           <div className="mt-4 flex items-stretch gap-3">
             <div
-              className={`flex w-24 shrink-0 flex-col items-center justify-center rounded-2xl px-2 py-3 text-white shadow-md ${
-                serving
-                  ? "bg-linear-to-br from-emerald-500 to-teal-500 shadow-emerald-500/30"
-                  : "bg-linear-to-br from-blue-600 to-indigo-600 shadow-indigo-500/30"
-              }`}
+              className={`flex w-24 shrink-0 flex-col items-center justify-center rounded-2xl px-2 py-3 text-white shadow-md ${serving
+                ? "bg-linear-to-br from-emerald-500 to-teal-500 shadow-emerald-500/30"
+                : "bg-linear-to-br from-blue-600 to-indigo-600 shadow-indigo-500/30"
+                }`}
             >
               <span className="text-xs opacity-80">Token</span>
               <span className="text-3xl font-bold leading-tight">#{t.tokenNumber}</span>
@@ -195,6 +232,11 @@ function ActiveCard({
             </p>
           )}
 
+          {t.paidRupees > 0 && (
+            <p className="mt-1 text-xs text-slate-500">
+              Paid <span className="font-medium text-slate-700">{inr(t.paidRupees)}</span>
+            </p>
+          )}
           <div className="mt-4 space-y-1.5 border-t border-white/70 pt-3 text-sm text-slate-600">
             <p className="flex items-center gap-1.5">
               <Clock size={14} className="shrink-0 text-indigo-400" aria-hidden="true" />
@@ -236,24 +278,94 @@ function ActiveCard({
 }
 
 // Finished tokens: one compact row each
+// Finished tokens: one compact row each, "View details" opens the payment / refund info
 function PastRow({ t, index }: { t: MyToken; index: number }) {
+  const [open, setOpen] = useState(false);
+  const cancelled = t.status === "CANCELLED";
+  const paid = t.paidRupees > 0;
+  const support = supportUrl(t);
+  const panelId = `token-details-${t.id}`;
+
   return (
     <li>
       <Reveal index={index}>
-        <div className={`${glass} flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3`}>
-          <span className="w-12 shrink-0 text-lg font-bold text-slate-400">#{t.tokenNumber}</span>
-          <Avatar t={t} size="sm" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-800">
-              {t.doctor.name} <span className="font-normal text-slate-500">· {t.clinic.name}</span>
-            </p>
-            <p className="text-xs text-slate-500">
-              {dayLabel(t)}, {formatHHmm(t.startTime)} to {formatHHmm(t.endTime)}
-            </p>
+        <div className={`${glass} px-4 py-3`}>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span className="w-12 shrink-0 text-lg font-bold text-slate-400">#{t.tokenNumber}</span>
+            <Avatar t={t} size="sm" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-slate-800">
+                {t.doctor.name} <span className="font-normal text-slate-500">· {t.clinic.name}</span>
+              </p>
+              <p className="text-xs text-slate-500">
+                {dayLabel(t)}, {formatHHmm(t.startTime)} to {formatHHmm(t.endTime)}
+              </p>
+            </div>
+            <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${badgeClass(t)}`}>
+              {tokenStatusText(t)}
+            </span>
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              aria-controls={panelId}
+              className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50 ${ring}`}
+            >
+              View details
+              <ChevronDown
+                size={14}
+                className={`transition motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              />
+            </button>
           </div>
-          <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${badgeClass(t)}`}>
-            {tokenStatusText(t)}
-          </span>
+
+          {open && (
+            <div id={panelId} className="mt-3 space-y-3 border-t border-white/70 pt-3 text-sm">
+              {!cancelled ? (
+                <p className="font-medium text-emerald-700">Completed</p>
+              ) : (
+                <>
+                  <p className="font-medium text-rose-600">{cancelledByText(t)}</p>
+
+                  {!paid ? (
+                    <p className="text-slate-600">
+                      This was a free token, so nothing was paid and nothing needs to be refunded.
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+                      <DetailRow label="You paid" value={inr(t.paidRupees)} />
+                      {t.refund && t.refund.feeRupees > 0 && (
+                        <DetailRow
+                          label="Payment gateway fee (not refundable)"
+                          value={`-${inr(t.refund.feeRupees)}`}
+                        />
+                      )}
+                      <div className="border-t border-slate-200 pt-1.5">
+                        <DetailRow label="Refund" value={inr(t.refund?.rupees ?? 0)} strong />
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        <p className="min-w-0 flex-1 text-xs text-slate-500">
+                          {t.refund ? refundStatusText(t.refund.status) : "No refund is due for this token."}
+                        </p>
+                        {support && (
+                          <a
+                            href={support}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 ${ring}`}
+                          >
+                            <MessageCircle size={14} aria-hidden="true" /> Chat with support
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
       </Reveal>
     </li>
@@ -284,12 +396,14 @@ function CancelDialog({
   token,
   busy,
   error,
+  preview,
   onConfirm,
   onClose,
 }: {
   token: MyToken;
   busy: boolean;
   error: string | null;
+  preview: RefundPreview | null | "failed"; // null = load ho raha hai
   onConfirm: () => void;
   onClose: () => void;
 }) {
@@ -326,10 +440,33 @@ function CancelDialog({
           queue, and this cannot be undone. To visit again you will need to book a new token.
         </p>
 
-        {error && (
-          <p role="alert" className="mt-3 text-sm text-rose-600">
-            {error}
+        {preview === null && <p className="mt-3 text-sm text-slate-500">Checking your refund...</p>}
+
+        {preview === "failed" && (
+          <p className="mt-3 text-sm text-slate-500">
+            We could not check the refund amount. If you paid, the refund is calculated after the payment gateway fee is
+            deducted.
           </p>
+        )}
+
+        {preview && preview !== "failed" && preview.paid && (
+          <div className="mt-4 space-y-1.5 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+            <div className="flex justify-between text-slate-600">
+              <span>You paid</span>
+              <span>{inr(preview.paidRupees)}</span>
+            </div>
+            <div className="flex justify-between text-slate-600">
+              <span>Payment gateway fee (not refundable)</span>
+              <span>-{inr(preview.feeRupees)}</span>
+            </div>
+            <div className="flex justify-between border-t border-slate-200 pt-1.5 font-semibold text-slate-800">
+              <span>Refund to your account</span>
+              <span>{inr(preview.refundRupees)}</span>
+            </div>
+            <p className="pt-1 text-xs text-slate-500">
+              The refund goes back to the original payment method in 5 to 7 working days.
+            </p>
+          </div>
         )}
 
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -344,7 +481,7 @@ function CancelDialog({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={busy}
+            disabled={busy || preview === null}
             aria-busy={busy}
             className={`inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-rose-500/30 hover:bg-rose-700 disabled:opacity-60 ${ring}`}
           >
@@ -380,6 +517,9 @@ export default function MyTokensPage() {
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
 
+  const [preview, setPreview] = useState<RefundPreview | null | "failed">(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     try {
       const { data } = await axios.get<{ tokens: MyToken[] }>(ENDPOINT, {
@@ -392,7 +532,7 @@ export default function MyTokensPage() {
       // keep showing the last good data when a poll fails
       setError(
         (axios.isAxiosError(err) && err.response?.data?.message) ||
-          "Could not refresh your tokens. Retrying..."
+        "Could not refresh your tokens. Retrying..."
       );
     }
   }, [getToken]);
@@ -411,9 +551,23 @@ export default function MyTokensPage() {
     setRefreshing(false);
   }
 
+  async function loadPreview(id: string) {
+    try {
+      const { data } = await axios.get<RefundPreview>(cancelEndpoint(id), {
+        headers: { Authorization: `Bearer ${await getToken()}` },
+      });
+      setPreview(data);
+    } catch {
+      setPreview("failed");
+    }
+  }
+
   function openCancel(t: MyToken) {
     setCancelError(null);
+    setNotice(null);
+    setPreview(null);
     setCancelTarget(t);
+    void loadPreview(t.id);
   }
 
   async function confirmCancel() {
@@ -422,15 +576,20 @@ export default function MyTokensPage() {
     setCancelError(null);
 
     try {
-      await axios.patch(cancelEndpoint(cancelTarget.id), null, {
+      const { data } = await axios.patch<{ refundRupees: number }>(cancelEndpoint(cancelTarget.id), null, {
         headers: { Authorization: `Bearer ${await getToken()}` },
       });
       setCancelTarget(null); // closes the popup
+      setNotice(
+        data.refundRupees > 0
+          ? `Token cancelled. ${inr(data.refundRupees)} will be refunded to your original payment method in 5 to 7 working days.`
+          : "Token cancelled."
+      );
       await load(); // the token moves to the Past tab
     } catch (err) {
       setCancelError(
         (axios.isAxiosError(err) && err.response?.data?.message) ||
-          "Could not cancel the token. Please try again."
+        "Could not cancel the token. Please try again."
       );
       void load(); // the token may have changed (for example it was just called)
     } finally {
@@ -579,15 +738,13 @@ export default function MyTokensPage() {
                 role="tab"
                 aria-selected={on}
                 onClick={() => setTab(t.key)}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${ring} ${
-                  on ? gradient : "text-slate-600 hover:bg-white/80"
-                }`}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${ring} ${on ? gradient : "text-slate-600 hover:bg-white/80"
+                  }`}
               >
                 {t.label}
                 <span
-                  className={`ml-1.5 rounded-full px-1.5 py-0.5 text-xs ${
-                    on ? "bg-white/25" : "bg-slate-100 text-slate-500"
-                  }`}
+                  className={`ml-1.5 rounded-full px-1.5 py-0.5 text-xs ${on ? "bg-white/25" : "bg-slate-100 text-slate-500"
+                    }`}
                 >
                   {t.count}
                 </span>
@@ -622,6 +779,15 @@ export default function MyTokensPage() {
         </p>
       )}
 
+      {notice && (
+        <p
+          role="status"
+          className="rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-sm text-emerald-700"
+        >
+          {notice}
+        </p>
+      )}
+
       {body}
 
       {cancelTarget && (
@@ -630,6 +796,7 @@ export default function MyTokensPage() {
           token={cancelTarget}
           busy={cancelling}
           error={cancelError}
+          preview={preview}
           onConfirm={confirmCancel}
           onClose={() => setCancelTarget(null)}
         />

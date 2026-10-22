@@ -18,6 +18,38 @@ import {
 } from "@/lib/patient-booking";
 import Reveal from "@/components/Reveal";
 
+declare global {
+  interface Window {
+    Razorpay?: any;
+  }
+}
+
+type BookResponse = BookedToken & {
+  free: boolean;
+  payment?: { orderId: string; amount: number; keyId: string };
+};
+
+type RzpResponse = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+
+type Outcome = { kind: "success"; response: RzpResponse } | { kind: "dismissed"; failed: boolean };
+
+// Razorpay ki script sirf tab load hoti hai jab paid token book ho
+function loadRazorpay(): Promise<boolean> {
+  if (typeof window === "undefined") return Promise.resolve(false);
+  if (window.Razorpay) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
+
 // Glassmorphism tokens
 const ring = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
 const gradient = "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-indigo-500/30";
@@ -81,6 +113,7 @@ export default function BookTokenModal({
 }) {
   const { getToken } = useAuth();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const hidingRef = useRef(false); // Razorpay ke liye dialog jaan bujh ke band kiya hai
 
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -127,21 +160,90 @@ export default function BookTokenModal({
   const day = availability?.days.find((d) => d.date === date);
   const picked = day?.sessions.find((s) => s.id === sessionId);
 
+  const reopenDialog = () => {
+    const d = dialogRef.current;
+    if (d && !d.open) d.showModal();
+  };
+
+  // Razorpay popup kholta hai. Success ya popup band hone par resolve hota hai.
+  function openCheckout(data: BookResponse & { payment: NonNullable<BookResponse["payment"]> }) {
+    return new Promise<Outcome>((resolve) => {
+      let failed = false;
+      const rzp = new window.Razorpay({
+        key: data.payment.keyId,
+        order_id: data.payment.orderId,
+        amount: data.payment.amount,
+        currency: "INR",
+        name: "Token booking",
+        description: `${doctor.name} - Token #${data.tokenNumber}`,
+        theme: { color: "#4f46e5" },
+        handler: (response: RzpResponse) => resolve({ kind: "success", response }),
+        modal: { ondismiss: () => resolve({ kind: "dismissed", failed }) },
+      });
+      rzp.on("payment.failed", () => {
+        failed = true; // popup khula rehta hai, user wahin retry kar sakta hai
+      });
+
+      hidingRef.current = true; // dialog band hoga, par parent ko "closed" mat batao
+      dialogRef.current?.close();
+      rzp.open();
+    });
+  }
+
   async function book() {
     if (!picked || !date || submitting) return;
     setSubmitting(true);
     setSubmitError(null);
 
+    const when = { date, startTime: picked.startTime, endTime: picked.endTime };
+
     try {
-      const { data } = await axios.post<BookedToken>(
+      const { data } = await axios.post<BookResponse>(
         "/api/user/bookings",
         { sessionId: picked.id, patientName },
         await authHeader()
       );
-      setConfirmed({ ...data, date, startTime: picked.startTime, endTime: picked.endTime });
+      const token = { id: data.id, tokenNumber: data.tokenNumber, ahead: data.ahead };
+
+      // Free session: seedha confirm
+      if (data.free || !data.payment) {
+        setConfirmed({ ...token, ...when });
+        return;
+      }
+
+      // Paid session: pehle payment
+      if (!(await loadRazorpay())) {
+        setSubmitError("Could not open the payment window. Check your internet and try again.");
+        return;
+      }
+
+      const outcome = await openCheckout({ ...data, payment: data.payment });
+      reopenDialog();
+
+      if (outcome.kind === "dismissed") {
+        setSubmitError(
+          outcome.failed
+            ? "Payment failed. Your token is held for 10 minutes, press the button to try again."
+            : "Payment was not completed. Your token is held for 10 minutes, press the button to pay."
+        );
+        return;
+      }
+
+      // Payment ho gayi: server pe verify karo, tab token confirm hoga
+      try {
+        await axios.post("/api/razorpay/verify", outcome.response, await authHeader());
+        setConfirmed({ ...token, ...when });
+      } catch (err) {
+        setSubmitError(
+          axios.isAxiosError(err) && err.response
+            ? errorMessage(err, "Could not confirm your payment.")
+            : "We could not confirm your payment yet. Please do not pay again. If money was deducted, your token will be confirmed or refunded automatically."
+        );
+      }
     } catch (err) {
+      reopenDialog();
       setSubmitError(errorMessage(err, "Could not book the token. Please try again."));
-      void load(); // the window may have changed, show the latest status
+      void load(); // window badal gayi ho sakti hai, latest status dikhao
     } finally {
       setSubmitting(false);
     }
@@ -226,11 +328,10 @@ export default function BookTokenModal({
                   setSessionId(null);
                   setSubmitError(null);
                 }}
-                className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${ring} ${
-                  d.date === date
-                    ? `border-transparent ${gradient}`
-                    : "border-white/70 bg-white/60 text-slate-700 hover:bg-white/90"
-                }`}
+                className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${ring} ${d.date === date
+                  ? `border-transparent ${gradient}`
+                  : "border-white/70 bg-white/60 text-slate-700 hover:bg-white/90"
+                  }`}
               >
                 {d.date === availability.today ? "Today" : dateText(d.date)}
               </button>
@@ -244,11 +345,10 @@ export default function BookTokenModal({
             return (
               <Reveal key={`${day.date}-${s.id}`} index={i}>
                 <div
-                  className={`rounded-2xl border p-4 transition ${
-                    selected
-                      ? "border-indigo-400 bg-white ring-2 ring-indigo-300"
-                      : "border-white/80 bg-white/60"
-                  }`}
+                  className={`rounded-2xl border p-4 transition ${selected
+                    ? "border-indigo-400 bg-white ring-2 ring-indigo-300"
+                    : "border-white/80 bg-white/60"
+                    }`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="flex items-center gap-2 text-sm font-semibold text-slate-800">
@@ -284,11 +384,10 @@ export default function BookTokenModal({
                       setSessionId(s.id);
                       setSubmitError(null);
                     }}
-                    className={`mt-3 w-full rounded-xl border px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${ring} ${
-                      selected
-                        ? "border-transparent bg-indigo-600 text-white"
-                        : "border-white/80 bg-white/70 text-slate-800 hover:bg-white"
-                    }`}
+                    className={`mt-3 w-full rounded-xl border px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${ring} ${selected
+                      ? "border-transparent bg-indigo-600 text-white"
+                      : "border-white/80 bg-white/70 text-slate-800 hover:bg-white"
+                      }`}
                   >
                     {selected ? "Selected" : s.canBook ? "Select this session" : "Booking unavailable"}
                   </button>
@@ -342,7 +441,13 @@ export default function BookTokenModal({
   return (
     <dialog
       ref={dialogRef}
-      onClose={onClose}
+      onClose={() => {
+        if (hidingRef.current) {
+          hidingRef.current = false; // Razorpay ke liye hide hua tha, parent ko mat batao
+          return;
+        }
+        onClose();
+      }}
       onCancel={(e) => submitting && e.preventDefault()}
       aria-labelledby="book-token-title"
       className="m-auto w-[calc(100%-2rem)] max-w-xl overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-0 shadow-2xl shadow-indigo-900/20 backdrop-blur-2xl backdrop:bg-slate-900/40 backdrop:backdrop-blur-sm"

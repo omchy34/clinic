@@ -131,14 +131,15 @@ exports.Prisma.UserScalarFieldEnum = {
 exports.Prisma.ClinicScalarFieldEnum = {
   id: 'id',
   name: 'name',
-  address: 'address',
+  phone: 'phone',
   city: 'city',
   email: 'email',
-  phone: 'phone',
+  address: 'address',
   logo: 'logo',
   clinicImage: 'clinicImage',
   isApproved: 'isApproved',
   timezone: 'timezone',
+  userCancelRefundPercent: 'userCancelRefundPercent',
   userId: 'userId',
   createdAt: 'createdAt'
 };
@@ -169,6 +170,7 @@ exports.Prisma.DoctorSessionScalarFieldEnum = {
   date: 'date',
   startTime: 'startTime',
   endTime: 'endTime',
+  cancelledAt: 'cancelledAt',
   lastTokenNumber: 'lastTokenNumber',
   bookingOpensAt: 'bookingOpensAt',
   bookingClosesAt: 'bookingClosesAt',
@@ -188,6 +190,8 @@ exports.Prisma.BookingScalarFieldEnum = {
   queuePosition: 'queuePosition',
   status: 'status',
   patientName: 'patientName',
+  amount: 'amount',
+  expiresAt: 'expiresAt',
   skipCount: 'skipCount',
   lastSkippedAt: 'lastSkippedAt',
   userId: 'userId',
@@ -196,7 +200,53 @@ exports.Prisma.BookingScalarFieldEnum = {
   createdAt: 'createdAt',
   calledAt: 'calledAt',
   completedAt: 'completedAt',
-  cancelledAt: 'cancelledAt'
+  cancelledAt: 'cancelledAt',
+  cancelledBy: 'cancelledBy',
+  cancelReason: 'cancelReason'
+};
+
+exports.Prisma.PaymentScalarFieldEnum = {
+  id: 'id',
+  bookingId: 'bookingId',
+  amount: 'amount',
+  currency: 'currency',
+  status: 'status',
+  razorpayOrderId: 'razorpayOrderId',
+  razorpayPaymentId: 'razorpayPaymentId',
+  method: 'method',
+  failureReason: 'failureReason',
+  gatewayFee: 'gatewayFee',
+  gatewayTax: 'gatewayTax',
+  refundedAmount: 'refundedAmount',
+  paidAt: 'paidAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.RefundScalarFieldEnum = {
+  id: 'id',
+  paymentId: 'paymentId',
+  amount: 'amount',
+  deductedFee: 'deductedFee',
+  reason: 'reason',
+  status: 'status',
+  razorpayRefundId: 'razorpayRefundId',
+  failureReason: 'failureReason',
+  createdAt: 'createdAt',
+  processedAt: 'processedAt'
+};
+
+exports.Prisma.WebhookEventScalarFieldEnum = {
+  id: 'id',
+  event: 'event',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PlatformSettingScalarFieldEnum = {
+  id: 'id',
+  tokenPrice: 'tokenPrice',
+  updatedAt: 'updatedAt',
+  updatedBy: 'updatedBy'
 };
 
 exports.Prisma.SortOrder = {
@@ -230,10 +280,40 @@ exports.QueueStatus = exports.$Enums.QueueStatus = {
 };
 
 exports.BookingStatus = exports.$Enums.BookingStatus = {
+  PENDING_PAYMENT: 'PENDING_PAYMENT',
   CONFIRMED: 'CONFIRMED',
   SERVING: 'SERVING',
   COMPLETED: 'COMPLETED',
-  CANCELLED: 'CANCELLED'
+  CANCELLED: 'CANCELLED',
+  EXPIRED: 'EXPIRED'
+};
+
+exports.CancelledBy = exports.$Enums.CancelledBy = {
+  USER: 'USER',
+  CLINIC: 'CLINIC',
+  SYSTEM: 'SYSTEM'
+};
+
+exports.PaymentStatus = exports.$Enums.PaymentStatus = {
+  CREATED: 'CREATED',
+  PAID: 'PAID',
+  FAILED: 'FAILED',
+  PARTIALLY_REFUNDED: 'PARTIALLY_REFUNDED',
+  REFUNDED: 'REFUNDED'
+};
+
+exports.RefundReason = exports.$Enums.RefundReason = {
+  USER_CANCELLED: 'USER_CANCELLED',
+  CLINIC_CANCELLED: 'CLINIC_CANCELLED',
+  SESSION_CANCELLED: 'SESSION_CANCELLED',
+  BOOKING_UNAVAILABLE: 'BOOKING_UNAVAILABLE'
+};
+
+exports.RefundStatus = exports.$Enums.RefundStatus = {
+  INITIATED: 'INITIATED',
+  PENDING: 'PENDING',
+  PROCESSED: 'PROCESSED',
+  FAILED: 'FAILED'
 };
 
 exports.Prisma.ModelName = {
@@ -242,7 +322,11 @@ exports.Prisma.ModelName = {
   Doctor: 'Doctor',
   DoctorSchedule: 'DoctorSchedule',
   DoctorSession: 'DoctorSession',
-  Booking: 'Booking'
+  Booking: 'Booking',
+  Payment: 'Payment',
+  Refund: 'Refund',
+  WebhookEvent: 'WebhookEvent',
+  PlatformSetting: 'PlatformSetting'
 };
 
 /**

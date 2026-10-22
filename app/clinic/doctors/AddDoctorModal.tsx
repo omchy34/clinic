@@ -19,7 +19,7 @@ import { Field, ui } from "./ui";
 import { useAuthHeaders } from "./useAuthHeaders";
 
 const ADD_ENDPOINT = "/api/clinic/add-doctors";
-const editEndpoint = (id: string) => `/api/clinic/doctors/${id}`;
+const editEndpoint = (id: string) => `/api/clinic/add-doctors/${id}`;
 
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const PHOTO_MB = 2; // the API allows up to 5 MB

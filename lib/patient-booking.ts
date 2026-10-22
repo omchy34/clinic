@@ -77,6 +77,13 @@ export type MyToken = {
   nowServing: number | null;
   ahead: number; // waiting tokens in front of this one
   estimate: { minutes: number; at: string } | null; // at = ISO moment
+  paidRupees: number; // 0 = free token
+  cancelledBy: "USER" | "CLINIC" | "SYSTEM" | null;
+  refund: null | {
+    rupees: number; // user ko wapas jaane wala
+    feeRupees: number; // kata hua gateway fee
+    status: "INITIATED" | "PENDING" | "PROCESSED" | "FAILED";
+  };
 };
 
 export function tokenStatusText(t: Pick<MyToken, "status" | "skipCount" | "queueStatus">): string {

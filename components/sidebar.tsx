@@ -3,7 +3,7 @@
 import DashboardShell, { type NavItem } from "./DashboardShell";
 import {
   LayoutDashboard, CalendarCheck, Heart, User, Stethoscope,
-  Settings, Users, Building2, ClipboardList, PlusCircle,UserCheck 
+  Settings, Users, Building2, ClipboardList, PlusCircle,UserCheck , IndianRupee
 } from "lucide-react";
 
 const userItems: NavItem[] = [
@@ -24,6 +24,8 @@ const adminItems: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Clinic Requests", href: "/admin/requests", icon: Building2 },
   { label: "Users", href: "/admin/users", icon: Users },
+  { label: "Settings", href: "/admin/settings", icon: Settings },
+  { label: "Payments", href: "/admin/payments", icon: IndianRupee },
 ];
 
 export function UserSidebar({ children }: { children: React.ReactNode }) {

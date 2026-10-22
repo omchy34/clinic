@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import Hero from "@/components/Hero";
+import HowItWorks from "@/components/how-it-works";
 
 export default function Home() {
   const { isLoaded, isSignedIn } = useUser();
@@ -15,5 +16,10 @@ export default function Home() {
 
   if (!isLoaded || isSignedIn) return null;
 
-  return <Hero />;
+  return (
+    <>
+      <Hero />
+      <HowItWorks />
+    </>
+  )
 }
