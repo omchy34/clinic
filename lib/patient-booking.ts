@@ -20,6 +20,19 @@ export function dateText(date: string): string {
   }).format(new Date(`${date}T00:00:00Z`));
 }
 
+/* ------------------------------ patient details ------------------------------ */
+
+// "+91 98765-43210" -> "9876543210"
+export function cleanPhone(raw: string): string {
+  let d = raw.replace(/[\s\-()]/g, "");
+  if (d.startsWith("+91")) d = d.slice(3);
+  else if (d.startsWith("91") && d.length === 12) d = d.slice(2);
+  else if (d.startsWith("0") && d.length === 11) d = d.slice(1);
+  return d;
+}
+
+export const isValidIndianPhone = (raw: string) => /^[6-9]\d{9}$/.test(cleanPhone(raw));
+
 // "13:00" -> "1:00 PM"
 export function formatHHmm(time: string): string {
   const [h, m] = time.split(":").map(Number);
@@ -92,6 +105,8 @@ export function tokenStatusText(t: Pick<MyToken, "status" | "skipCount" | "queue
       return "It's your turn";
     case "COMPLETED":
       return "Completed";
+    case "SKIPPED":
+      return "Skipped. Please speak to the clinic desk";
     case "CANCELLED":
       return "Cancelled";
     default:
@@ -101,3 +116,5 @@ export function tokenStatusText(t: Pick<MyToken, "status" | "skipCount" | "queue
       return "Waiting in the queue";
   }
 }
+
+

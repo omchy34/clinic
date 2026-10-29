@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { toResponse } from "@/lib/booking-server";
 import { bookToken, loadMyTokens, requireUser } from "@/lib/patient-booking-server";
+import { cleanPhone, isValidIndianPhone } from "@/lib/patient-booking";
 
 export async function POST(request: Request) {
   const ctx = await requireUser();
@@ -14,26 +15,32 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const sessionId = body?.sessionId;
-  const patientName = body?.patientName;
+  const patientName = typeof body?.patientName === "string" ? body.patientName.trim() : "";
+  const patientPhone = typeof body?.patientPhone === "string" ? body.patientPhone : "";
 
   if (typeof sessionId !== "string" || !sessionId) {
     return NextResponse.json({ message: "Choose a session to book." }, { status: 400 });
   }
-  if (patientName !== undefined && patientName !== null && typeof patientName !== "string") {
-    return NextResponse.json({ message: "Invalid patient name." }, { status: 400 });
+  if (!patientName) {
+    return NextResponse.json({ message: "Patient name is required." }, { status: 400 });
   }
-  if (typeof patientName === "string" && patientName.length > 100) {
+  if (patientName.length > 100) {
     return NextResponse.json({ message: "Patient name is too long." }, { status: 400 });
+  }
+  if (!isValidIndianPhone(patientPhone)) {
+    return NextResponse.json(
+      { message: "Enter a valid 10-digit Indian mobile number." },
+      { status: 400 }
+    );
   }
 
   try {
-    const token = await bookToken(ctx.userId, sessionId, patientName ?? undefined);
+    const token = await bookToken(ctx.userId, sessionId, patientName, cleanPhone(patientPhone));
     return NextResponse.json(token, { status: 201 });
   } catch (err) {
     return toResponse(err, "Could not book the token. Please try again.", "POST /api/user/bookings");
   }
 }
-
 export async function GET() {
   const ctx = await requireUser();
   if ("error" in ctx) return ctx.error;

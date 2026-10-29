@@ -4,11 +4,13 @@
 // The patient picks a date and a session. The server hands out the next token number.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import Link from "next/link";
 import axios from "axios";
 import { useAuth } from "@clerk/nextjs";
+import { cleanPhone, isValidIndianPhone } from "@/lib/patient-booking";
 import { CheckCircle2, Clock, Loader2, X } from "lucide-react";
-import type { BookingStatus } from "@/lib/booking";
+import { addDays, type BookingStatus } from "@/lib/booking";
 import {
   dateText,
   formatHHmm,
@@ -69,7 +71,7 @@ const errorMessage = (err: unknown, fallback: string) =>
 
 function SessionNote({ s, date }: { s: PatientSession; date: string }) {
   let text: string;
-  if (s.notOpenYet) text = `Booking opens at 12:00 AM on ${dateText(date)}.`;
+  if (s.notOpenYet) text = `Booking opens at 12:00 AM on ${dateText(addDays(date, -1))}.`;
   else if (s.canBook) text = `Booking closes at ${formatHHmm(s.closesAtTime)}.`;
   else if (s.status === "OVER") text = "The clinic has stopped taking tokens for this session.";
   else text = "Booking is closed for this session.";
@@ -120,6 +122,7 @@ export default function BookTokenModal({
   const [date, setDate] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [patientName, setPatientName] = useState("");
+  const [patientPhone, setPatientPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<Confirmed | null>(null);
@@ -159,6 +162,7 @@ export default function BookTokenModal({
 
   const day = availability?.days.find((d) => d.date === date);
   const picked = day?.sessions.find((s) => s.id === sessionId);
+  const detailsValid = patientName.trim().length > 0 && isValidIndianPhone(patientPhone);
 
   const reopenDialog = () => {
     const d = dialogRef.current;
@@ -191,7 +195,7 @@ export default function BookTokenModal({
   }
 
   async function book() {
-    if (!picked || !date || submitting) return;
+    if (!picked || !date || submitting || !detailsValid) return;
     setSubmitting(true);
     setSubmitError(null);
 
@@ -200,7 +204,7 @@ export default function BookTokenModal({
     try {
       const { data } = await axios.post<BookResponse>(
         "/api/user/bookings",
-        { sessionId: picked.id, patientName },
+        { sessionId: picked.id, patientName: patientName.trim(), patientPhone: cleanPhone(patientPhone) },
         await authHeader()
       );
       const token = { id: data.id, tokenNumber: data.tokenNumber, ahead: data.ahead };
@@ -403,10 +407,29 @@ export default function BookTokenModal({
             value={patientName}
             onChange={(e) => setPatientName(e.target.value)}
             maxLength={100}
-            placeholder="Patient name (optional)"
+            required
+            placeholder="Patient name"
             aria-label="Patient name"
+            autoComplete="name"
             className="w-full rounded-xl border border-white/80 bg-white/70 px-4 py-2.5 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-indigo-400"
           />
+          <div>
+            <input
+              value={patientPhone}
+              onChange={(e) => setPatientPhone(e.target.value.replace(/[^\d+\s-]/g, ""))}
+              type="tel"
+              inputMode="numeric"
+              maxLength={16}
+              required
+              placeholder="Mobile number (10 digits)"
+              aria-label="Patient mobile number"
+              autoComplete="tel"
+              className="w-full rounded-xl border border-white/80 bg-white/70 px-4 py-2.5 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-indigo-400"
+            />
+            {patientPhone && !isValidIndianPhone(patientPhone) && (
+              <p className="mt-1 text-xs text-rose-600">Enter a valid Indian mobile number (starts with 6 to 9).</p>
+            )}
+          </div>
           {submitError && (
             <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50/80 px-3 py-2 text-sm text-rose-600">
               {submitError}
@@ -415,7 +438,7 @@ export default function BookTokenModal({
           <button
             type="button"
             onClick={book}
-            disabled={!picked || submitting}
+            disabled={!picked || submitting || !detailsValid}
             aria-busy={submitting}
             className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition hover:opacity-90 disabled:opacity-50 ${gradient} ${ring}`}
           >
@@ -424,10 +447,12 @@ export default function BookTokenModal({
                 <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
                 Booking...
               </>
-            ) : picked ? (
-              "Book my token"
-            ) : (
+            ) : !picked ? (
               "Select a session"
+            ) : !detailsValid ? (
+              "Enter name and mobile number"
+            ) : (
+              "Book my token"
             )}
           </button>
           <p className="text-center text-xs text-slate-500">

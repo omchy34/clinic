@@ -8,7 +8,6 @@ import {
   Siren,
 } from "lucide-react";
 
-
 const display = Bricolage_Grotesque({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
@@ -51,6 +50,25 @@ const columns = [
       { label: "Press", href: "#" },
       { label: "Contact", href: "#" },
     ],
+  },
+];
+
+const legalLinks = [
+  {
+    label: "Privacy Policy",
+    href: "https://sites.google.com/view/dt--privacy--policy/home",
+  },
+  {
+    label: "Terms & Conditions",
+    href: "https://sites.google.com/view/dt-terms-conditions/home",
+  },
+  {
+    label: "Refund Policy",
+    href: "https://sites.google.com/view/dt-refund-policy/home",
+  },
+  {
+    label: "FAQs",
+    href: "https://sites.google.com/view/dtfaqs/home",
   },
 ];
 
@@ -163,9 +181,24 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="mt-12 flex flex-col gap-4 border-t border-slate-200/80 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-slate-500">
-            © {YEAR} Doctor Token. All rights reserved.
-          </p>
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-slate-500">
+              © {YEAR} Doctor Token. All rights reserved.
+            </p>
+            <nav aria-label="Legal" className="flex flex-wrap gap-x-5 gap-y-2">
+              {legalLinks.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`rounded text-sm text-slate-600 transition-colors hover:text-emerald-700 ${focusRing}`}
+                >
+                  {link.label}
+                </a>
+              ))}
+            </nav>
+          </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
             <p className="flex items-center gap-2 text-sm text-slate-500">
@@ -174,7 +207,7 @@ export default function Footer() {
             </p>
             <p className="inline-flex items-center gap-2 self-start rounded-full border border-red-200 bg-red-50 px-3.5 py-1.5 text-sm font-medium text-red-700 sm:self-auto">
               <Siren size={16} className="shrink-0" />
-              In an emergency, call 911 immediately.
+              In an emergency, call 112 immediately.
             </p>
           </div>
         </div>

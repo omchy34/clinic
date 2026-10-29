@@ -71,6 +71,7 @@ export namespace $Enums {
   export const BookingStatus: {
   PENDING_PAYMENT: 'PENDING_PAYMENT',
   CONFIRMED: 'CONFIRMED',
+  SKIPPED: 'SKIPPED',
   SERVING: 'SERVING',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
@@ -7927,6 +7928,7 @@ export namespace Prisma {
     queuePosition: number | null
     status: $Enums.BookingStatus | null
     patientName: string | null
+    patientPhone: string | null
     amount: number | null
     expiresAt: Date | null
     skipCount: number | null
@@ -7948,6 +7950,7 @@ export namespace Prisma {
     queuePosition: number | null
     status: $Enums.BookingStatus | null
     patientName: string | null
+    patientPhone: string | null
     amount: number | null
     expiresAt: Date | null
     skipCount: number | null
@@ -7969,6 +7972,7 @@ export namespace Prisma {
     queuePosition: number
     status: number
     patientName: number
+    patientPhone: number
     amount: number
     expiresAt: number
     skipCount: number
@@ -8006,6 +8010,7 @@ export namespace Prisma {
     queuePosition?: true
     status?: true
     patientName?: true
+    patientPhone?: true
     amount?: true
     expiresAt?: true
     skipCount?: true
@@ -8027,6 +8032,7 @@ export namespace Prisma {
     queuePosition?: true
     status?: true
     patientName?: true
+    patientPhone?: true
     amount?: true
     expiresAt?: true
     skipCount?: true
@@ -8048,6 +8054,7 @@ export namespace Prisma {
     queuePosition?: true
     status?: true
     patientName?: true
+    patientPhone?: true
     amount?: true
     expiresAt?: true
     skipCount?: true
@@ -8156,6 +8163,7 @@ export namespace Prisma {
     queuePosition: number
     status: $Enums.BookingStatus
     patientName: string | null
+    patientPhone: string
     amount: number
     expiresAt: Date | null
     skipCount: number
@@ -8196,6 +8204,7 @@ export namespace Prisma {
     queuePosition?: boolean
     status?: boolean
     patientName?: boolean
+    patientPhone?: boolean
     amount?: boolean
     expiresAt?: boolean
     skipCount?: boolean
@@ -8222,6 +8231,7 @@ export namespace Prisma {
     queuePosition?: boolean
     status?: boolean
     patientName?: boolean
+    patientPhone?: boolean
     amount?: boolean
     expiresAt?: boolean
     skipCount?: boolean
@@ -8246,6 +8256,7 @@ export namespace Prisma {
     queuePosition?: boolean
     status?: boolean
     patientName?: boolean
+    patientPhone?: boolean
     amount?: boolean
     expiresAt?: boolean
     skipCount?: boolean
@@ -8270,6 +8281,7 @@ export namespace Prisma {
     queuePosition?: boolean
     status?: boolean
     patientName?: boolean
+    patientPhone?: boolean
     amount?: boolean
     expiresAt?: boolean
     skipCount?: boolean
@@ -8285,7 +8297,7 @@ export namespace Prisma {
     cancelReason?: boolean
   }
 
-  export type BookingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tokenNumber" | "queuePosition" | "status" | "patientName" | "amount" | "expiresAt" | "skipCount" | "lastSkippedAt" | "userId" | "clinicId" | "sessionId" | "createdAt" | "calledAt" | "completedAt" | "cancelledAt" | "cancelledBy" | "cancelReason", ExtArgs["result"]["booking"]>
+  export type BookingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tokenNumber" | "queuePosition" | "status" | "patientName" | "patientPhone" | "amount" | "expiresAt" | "skipCount" | "lastSkippedAt" | "userId" | "clinicId" | "sessionId" | "createdAt" | "calledAt" | "completedAt" | "cancelledAt" | "cancelledBy" | "cancelReason", ExtArgs["result"]["booking"]>
   export type BookingInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
     clinic?: boolean | ClinicDefaultArgs<ExtArgs>
@@ -8319,6 +8331,7 @@ export namespace Prisma {
       queuePosition: number
       status: $Enums.BookingStatus
       patientName: string | null
+      patientPhone: string
       amount: number
       expiresAt: Date | null
       skipCount: number
@@ -8765,6 +8778,7 @@ export namespace Prisma {
     readonly queuePosition: FieldRef<"Booking", 'Int'>
     readonly status: FieldRef<"Booking", 'BookingStatus'>
     readonly patientName: FieldRef<"Booking", 'String'>
+    readonly patientPhone: FieldRef<"Booking", 'String'>
     readonly amount: FieldRef<"Booking", 'Int'>
     readonly expiresAt: FieldRef<"Booking", 'DateTime'>
     readonly skipCount: FieldRef<"Booking", 'Int'>
@@ -13764,6 +13778,7 @@ export namespace Prisma {
     queuePosition: 'queuePosition',
     status: 'status',
     patientName: 'patientName',
+    patientPhone: 'patientPhone',
     amount: 'amount',
     expiresAt: 'expiresAt',
     skipCount: 'skipCount',
@@ -14462,6 +14477,7 @@ export namespace Prisma {
     queuePosition?: IntFilter<"Booking"> | number
     status?: EnumBookingStatusFilter<"Booking"> | $Enums.BookingStatus
     patientName?: StringNullableFilter<"Booking"> | string | null
+    patientPhone?: StringFilter<"Booking"> | string
     amount?: IntFilter<"Booking"> | number
     expiresAt?: DateTimeNullableFilter<"Booking"> | Date | string | null
     skipCount?: IntFilter<"Booking"> | number
@@ -14488,6 +14504,7 @@ export namespace Prisma {
     queuePosition?: SortOrder
     status?: SortOrder
     patientName?: SortOrderInput | SortOrder
+    patientPhone?: SortOrder
     amount?: SortOrder
     expiresAt?: SortOrderInput | SortOrder
     skipCount?: SortOrder
@@ -14518,6 +14535,7 @@ export namespace Prisma {
     queuePosition?: IntFilter<"Booking"> | number
     status?: EnumBookingStatusFilter<"Booking"> | $Enums.BookingStatus
     patientName?: StringNullableFilter<"Booking"> | string | null
+    patientPhone?: StringFilter<"Booking"> | string
     amount?: IntFilter<"Booking"> | number
     expiresAt?: DateTimeNullableFilter<"Booking"> | Date | string | null
     skipCount?: IntFilter<"Booking"> | number
@@ -14544,6 +14562,7 @@ export namespace Prisma {
     queuePosition?: SortOrder
     status?: SortOrder
     patientName?: SortOrderInput | SortOrder
+    patientPhone?: SortOrder
     amount?: SortOrder
     expiresAt?: SortOrderInput | SortOrder
     skipCount?: SortOrder
@@ -14573,6 +14592,7 @@ export namespace Prisma {
     queuePosition?: IntWithAggregatesFilter<"Booking"> | number
     status?: EnumBookingStatusWithAggregatesFilter<"Booking"> | $Enums.BookingStatus
     patientName?: StringNullableWithAggregatesFilter<"Booking"> | string | null
+    patientPhone?: StringWithAggregatesFilter<"Booking"> | string
     amount?: IntWithAggregatesFilter<"Booking"> | number
     expiresAt?: DateTimeNullableWithAggregatesFilter<"Booking"> | Date | string | null
     skipCount?: IntWithAggregatesFilter<"Booking"> | number
@@ -15348,6 +15368,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -15371,6 +15392,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -15394,6 +15416,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -15417,6 +15440,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -15440,6 +15464,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -15461,6 +15486,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -15479,6 +15505,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -16332,6 +16359,7 @@ export namespace Prisma {
     queuePosition?: SortOrder
     status?: SortOrder
     patientName?: SortOrder
+    patientPhone?: SortOrder
     amount?: SortOrder
     expiresAt?: SortOrder
     skipCount?: SortOrder
@@ -16360,6 +16388,7 @@ export namespace Prisma {
     queuePosition?: SortOrder
     status?: SortOrder
     patientName?: SortOrder
+    patientPhone?: SortOrder
     amount?: SortOrder
     expiresAt?: SortOrder
     skipCount?: SortOrder
@@ -16381,6 +16410,7 @@ export namespace Prisma {
     queuePosition?: SortOrder
     status?: SortOrder
     patientName?: SortOrder
+    patientPhone?: SortOrder
     amount?: SortOrder
     expiresAt?: SortOrder
     skipCount?: SortOrder
@@ -17593,6 +17623,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -17615,6 +17646,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -17711,6 +17743,7 @@ export namespace Prisma {
     queuePosition?: IntFilter<"Booking"> | number
     status?: EnumBookingStatusFilter<"Booking"> | $Enums.BookingStatus
     patientName?: StringNullableFilter<"Booking"> | string | null
+    patientPhone?: StringFilter<"Booking"> | string
     amount?: IntFilter<"Booking"> | number
     expiresAt?: DateTimeNullableFilter<"Booking"> | Date | string | null
     skipCount?: IntFilter<"Booking"> | number
@@ -17789,6 +17822,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -17811,6 +17845,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -18238,6 +18273,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -18260,6 +18296,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -18287,6 +18324,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -18309,6 +18347,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -18387,6 +18426,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -18409,6 +18449,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -18863,6 +18904,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -18885,6 +18927,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -18957,6 +19000,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -18979,6 +19023,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -19121,6 +19166,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -19141,6 +19187,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -19163,6 +19210,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -19185,6 +19233,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -19215,6 +19264,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -19269,6 +19319,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -19291,6 +19342,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -19313,6 +19365,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -19443,6 +19496,7 @@ export namespace Prisma {
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
+    patientPhone: string
     amount?: number
     expiresAt?: Date | string | null
     skipCount?: number
@@ -19463,6 +19517,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -19485,6 +19540,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number
@@ -19507,6 +19563,7 @@ export namespace Prisma {
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
+    patientPhone?: StringFieldUpdateOperationsInput | string
     amount?: IntFieldUpdateOperationsInput | number
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     skipCount?: IntFieldUpdateOperationsInput | number

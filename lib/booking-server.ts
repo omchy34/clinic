@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import authClinic from "@/middlewere/authClinic";
 import {
   TIME_RE,
+  addDays,
   bookingLabel,
   bookingStatus,
   timeIn,
@@ -66,9 +67,17 @@ export async function requireClinic(): Promise<
 
 // Creates the day's sessions from the doctors' weekly schedules. Safe to call many times.
 // Only for today and future dates. The patient booking API must call this too.
-export async function ensureSessions(clinicId: string, date: string, timezone: string, doctorId?: string) {
+export async function ensureSessions(
+  clinicId: string,
+  date: string,
+  timezone: string,
+  doctorId?: string
+) {
   const schedules = await prisma.doctorSchedule.findMany({
-    where: { day: weekdayOf(date), doctor: { clinicId, isActive: true, ...(doctorId ? { id: doctorId } : {}) } },
+    where: {
+      day: weekdayOf(date),
+      doctor: { clinicId, isActive: true, ...(doctorId ? { id: doctorId } : {}) },
+    },
     select: {
       doctorId: true,
       startTime: true,
@@ -78,7 +87,8 @@ export async function ensureSessions(clinicId: string, date: string, timezone: s
   });
   if (schedules.length === 0) return;
 
-  const opensAt = zonedToUtc(date, "00:00", timezone); // booking opens at midnight
+  // Booking opens at 12:00 AM (midnight) of the previous day, in the clinic's time zone
+  const opensAt = zonedToUtc(addDays(date, -1), "00:00", timezone);
   await prisma.doctorSession.createMany({
     data: schedules.map((s) => ({
       doctorId: s.doctorId,
@@ -92,7 +102,13 @@ export async function ensureSessions(clinicId: string, date: string, timezone: s
   });
 }
 
-const RANK: Record<TokenStatus, number> = { SERVING: 0, CONFIRMED: 1, COMPLETED: 2, CANCELLED: 3 };
+const RANK: Record<TokenStatus, number> = {
+  SERVING: 0,
+  CONFIRMED: 1,
+  SKIPPED: 2,
+  COMPLETED: 3,
+  CANCELLED: 4,
+};
 
 function compareTokens(a: TokenView, b: TokenView) {
   if (RANK[a.status] !== RANK[b.status]) return RANK[a.status] - RANK[b.status];
@@ -125,15 +141,18 @@ export async function loadAppointments(
       bookingClosesAt: true,
       bookingExtended: true,
       bookingManuallyClosed: true,
-      doctor: { select: { id: true, name: true, image: true, specialtySlug: true, isActive: true } },
+      doctor: {
+        select: { id: true, name: true, image: true, specialtySlug: true, isActive: true },
+      },
       bookings: {
-        where: { status: { in: ["CONFIRMED", "SERVING", "COMPLETED", "CANCELLED"] } },
+        where: { status: { in: ["CONFIRMED", "SKIPPED", "SERVING", "COMPLETED", "CANCELLED"] } },
         select: {
           id: true,
           tokenNumber: true,
           queuePosition: true,
           status: true,
           patientName: true,
+          patientPhone: true,
           skipCount: true,
           user: { select: { name: true } },
         },
@@ -151,7 +170,10 @@ export async function loadAppointments(
         tokenNumber: b.tokenNumber,
         queuePosition: b.queuePosition,
         status: b.status as TokenStatus,
+        // patientName is optional in the database, but TokenView needs a string.
+        // If the clinic did not enter a patient name, show the account holder's name.
         patientName: b.patientName ?? b.user.name,
+        patientPhone: b.patientPhone,
         bookedBy: b.user.name,
         skipCount: b.skipCount,
       }))
@@ -178,6 +200,7 @@ export async function loadAppointments(
       },
       counts: {
         waiting: tokens.filter((t) => t.status === "CONFIRMED").length,
+        skipped: tokens.filter((t) => t.status === "SKIPPED").length,
         completed: tokens.filter((t) => t.status === "COMPLETED").length,
         cancelled: tokens.filter((t) => t.status === "CANCELLED").length,
         total: tokens.length,
@@ -228,10 +251,10 @@ async function serveNext(
   return next?.id ?? null;
 }
 
-export const TOKEN_ACTIONS = ["complete", "skip", "cancel"] as const;
+export const TOKEN_ACTIONS = ["complete", "skip", "cancel", "restore"] as const;
 export type TokenAction = (typeof TOKEN_ACTIONS)[number];
 
-// Complete / Skip / Cancel buttons on a token
+// Complete / Skip / Cancel / Back to queue buttons on a token
 export async function runTokenAction(bookingId: string, clinicId: string, action: TokenAction) {
   const booking = await prisma.booking.findFirst({
     where: { id: bookingId, clinicId },
@@ -242,18 +265,44 @@ export async function runTokenAction(bookingId: string, clinicId: string, action
   if (booking.status === "COMPLETED" || booking.status === "CANCELLED") {
     throw new ApiError(409, "This token is already completed or cancelled.");
   }
+  if (action === "restore" && booking.status !== "SKIPPED") {
+    throw new ApiError(409, "Only a skipped token can be sent back to the queue.");
+  }
 
   const now = new Date();
   const sessionId = booking.sessionId;
 
   await prisma.$transaction(async (tx) => {
-    // A waiting token can be cancelled without touching the line
-    if (action === "cancel" && booking.status === "CONFIRMED") {
+    // Back to queue: the token goes to the FRONT of the waiting line,
+    // so it is called right after the token that is being served now.
+    if (action === "restore") {
+      const first = await tx.booking.aggregate({
+        where: { sessionId, status: "CONFIRMED" },
+        _min: { queuePosition: true },
+      });
       const r = await tx.booking.updateMany({
-        where: { id: booking.id, status: "CONFIRMED" },
+        where: { id: booking.id, status: "SKIPPED" },
+        data: { status: "CONFIRMED", queuePosition: (first._min.queuePosition ?? 1) - 1 },
+      });
+      if (r.count === 0) {
+        throw new ApiError(409, "This token was just updated. Refresh and try again.");
+      }
+      await tx.doctorSession.update({
+        where: { id: sessionId },
+        data: { queueVersion: { increment: 1 } },
+      });
+      return;
+    }
+
+    // A waiting or skipped token can be cancelled without touching the line
+    if (action === "cancel" && (booking.status === "CONFIRMED" || booking.status === "SKIPPED")) {
+      const r = await tx.booking.updateMany({
+        where: { id: booking.id, status: booking.status },
         data: { status: "CANCELLED", cancelledAt: now },
       });
-      if (r.count === 0) throw new ApiError(409, "This token was just updated. Refresh and try again.");
+      if (r.count === 0) {
+        throw new ApiError(409, "This token was just updated. Refresh and try again.");
+      }
       await tx.doctorSession.update({
         where: { id: sessionId },
         data: { queueVersion: { increment: 1 } },
@@ -279,24 +328,19 @@ export async function runTokenAction(bookingId: string, clinicId: string, action
         data: { status: "CANCELLED", cancelledAt: now },
       });
     } else {
-      // skip: back to waiting, at the end of the line. There is no skip limit.
-      const last = await tx.booking.aggregate({
-        where: { sessionId },
-        _max: { queuePosition: true },
-      });
+      // skip: out of the line until the clinic presses "Back to queue". No skip limit.
       await tx.booking.update({
         where: { id: booking.id },
         data: {
-          status: "CONFIRMED",
+          status: "SKIPPED",
           skipCount: { increment: 1 },
           lastSkippedAt: now,
           calledAt: null,
-          queuePosition: (last._max.queuePosition ?? 0) + 1,
         },
       });
     }
 
-    await serveNext(tx, sessionId, now, action === "skip" ? booking.id : undefined);
+    await serveNext(tx, sessionId, now); // only CONFIRMED tokens are picked, so a skipped one is never called
   });
 }
 
@@ -385,7 +429,10 @@ export async function runSessionAction(
       }
       const newClose = zonedToUtc(session.date.toISOString().slice(0, 10), closesAt, timezone);
       if (newClose <= now || newClose <= session.bookingClosesAt) {
-        throw new ApiError(400, "The new closing time must be later than now and than the current closing time.");
+        throw new ApiError(
+          400,
+          "The new closing time must be later than now and than the current closing time."
+        );
       }
       // Only the closing time changes. Existing tokens and their numbers are untouched.
       // Extending also reopens booking if the clinic had closed it by hand.

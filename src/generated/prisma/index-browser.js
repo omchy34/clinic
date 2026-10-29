@@ -190,6 +190,7 @@ exports.Prisma.BookingScalarFieldEnum = {
   queuePosition: 'queuePosition',
   status: 'status',
   patientName: 'patientName',
+  patientPhone: 'patientPhone',
   amount: 'amount',
   expiresAt: 'expiresAt',
   skipCount: 'skipCount',
@@ -282,6 +283,7 @@ exports.QueueStatus = exports.$Enums.QueueStatus = {
 exports.BookingStatus = exports.$Enums.BookingStatus = {
   PENDING_PAYMENT: 'PENDING_PAYMENT',
   CONFIRMED: 'CONFIRMED',
+  SKIPPED: 'SKIPPED',
   SERVING: 'SERVING',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',

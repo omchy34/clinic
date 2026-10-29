@@ -2,7 +2,7 @@
 // Pure helpers and shared types. No database code here, so client components can import it too.
 
 export type QueueStatus = "NOT_STARTED" | "ACTIVE" | "ENDED";
-export type TokenStatus = "CONFIRMED" | "SERVING" | "COMPLETED" | "CANCELLED";
+export type TokenStatus = "CONFIRMED" | "SKIPPED" | "SERVING" | "COMPLETED" | "CANCELLED";
 export type BookingStatus = "OPEN" | "EXTENDED" | "CLOSED" | "OVER";
 export type Weekday = "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
 
@@ -151,6 +151,7 @@ export type TokenView = {
   queuePosition: number; // changes when the token is skipped
   status: TokenStatus;
   patientName: string;
+  patientPhone: string;
   bookedBy: string;
   skipCount: number; // show a "Skipped" badge when above 0
 };
@@ -170,7 +171,7 @@ export type SessionView = {
     extended: boolean;
     manuallyClosed: boolean;
   };
-  counts: { waiting: number; completed: number; cancelled: number; total: number };
+    counts: { waiting: number; skipped: number; completed: number; cancelled: number; total: number };
   tokens: TokenView[];
 };
 

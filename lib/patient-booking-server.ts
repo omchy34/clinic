@@ -123,7 +123,8 @@ function closedMessage(status: BookingStatus, opensAt: Date, now: Date): string 
 export async function bookToken(
   userId: string,
   sessionId: string,
-  patientName?: string
+  patientName: string,
+  patientPhone: string
 ): Promise<BookTokenResult> {
   const session = await prisma.doctorSession.findUnique({
     where: { id: sessionId },
@@ -232,7 +233,8 @@ export async function bookToken(
         status: free ? "CONFIRMED" : "PENDING_PAYMENT",
         amount: tokenPrice,
         expiresAt: free ? null : new Date(now.getTime() + PAYMENT_WINDOW_MS),
-        patientName: patientName?.trim() || null,
+        patientName: patientName.trim(),
+        patientPhone,
         userId,
         clinicId: session.doctor.clinicId,
         sessionId,

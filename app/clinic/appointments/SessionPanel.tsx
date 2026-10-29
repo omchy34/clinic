@@ -15,7 +15,7 @@ export type SessionActionName =
     | "closeBooking"
     | "reopenBooking"
     | "extend";
-export type TokenActionName = "complete" | "skip" | "cancel";
+export type TokenActionName = "complete" | "skip" | "cancel" | "restore";
 
 const tokenLabel = (n: number) => `T-${n}`;
 
@@ -43,6 +43,14 @@ const QUEUE_TEXT: Record<QueueStatus, string> = {
     ACTIVE: "Queue running",
     ENDED: "Session ended",
 };
+
+
+const PhoneLink = ({ phone, className = "" }: { phone: string; className?: string }) =>
+    phone === "0000000000" ? null : (
+        <a href={`tel:+91${phone}`} className={`text-xs underline-offset-2 hover:underline ${className}`}>
+            {phone}
+        </a>
+    );
 
 function Spinner() {
     return <Loader2 size={14} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />;
@@ -159,6 +167,7 @@ export default function SessionPanel({
         .filter((t) => t.status === "CONFIRMED")
         .sort((a, b) => a.queuePosition - b.queuePosition);
     const done = session.tokens.filter((t) => t.status === "COMPLETED" || t.status === "CANCELLED");
+    const skipped = session.tokens.filter((t) => t.status === "SKIPPED");
 
     const [extending, setExtending] = useState(false);
     const [extendTo, setExtendTo] = useState(booking.closesAtTime);
@@ -190,6 +199,7 @@ export default function SessionPanel({
                     <p className="mt-0.5 text-sm text-slate-500">
                         {QUEUE_TEXT[queueStatus]}. {counts.total} {counts.total === 1 ? "token" : "tokens"}:{" "}
                         {counts.waiting} waiting, {counts.completed} done
+                        {counts.skipped > 0 && `, ${counts.skipped} skipped`}
                         {counts.cancelled > 0 && `, ${counts.cancelled} cancelled`}.
                     </p>
                 </div>
@@ -282,7 +292,7 @@ export default function SessionPanel({
                         <div className="flex items-end justify-between gap-4 p-5">
                             <div className="min-w-0">
                                 <p className="text-sm font-medium text-blue-100">Now serving</p>
-                                <p className="mt-1 truncate text-lg font-semibold">{serving.patientName}</p>
+                                <p className="mt-1 truncate text-lg font-semibold">{serving.patientName} <PhoneLink phone={serving.patientPhone} className="text-blue-100" /></p>
                                 {serving.skipCount > 0 && (
                                     <p className="text-sm text-blue-100">
                                         Skipped {serving.skipCount} {serving.skipCount === 1 ? "time" : "times"} before
@@ -348,7 +358,11 @@ export default function SessionPanel({
                 ) : (
                     <div className="rounded-2xl border-2 border-dashed border-white/80 bg-white/40 p-5 text-center backdrop-blur-md">
                         <p className="text-sm text-slate-500">
-                            {waiting.length > 0 ? "Nobody is being served right now." : "No one is waiting right now."}
+                            {waiting.length > 0
+                                ? "Nobody is being served right now."
+                                : skipped.length > 0
+                                    ? "Only skipped tokens are left. Send one back to the queue to continue."
+                                    : "No one is waiting right now."}
                         </p>
                         {!readOnly && waiting.length > 0 && (
                             <Btn
@@ -380,6 +394,7 @@ export default function SessionPanel({
                                     {t.bookedBy !== t.patientName && (
                                         <p className="truncate text-xs text-slate-500">Booked by {t.bookedBy}</p>
                                     )}
+                                    <PhoneLink phone={t.patientPhone} className="text-indigo-600" />
                                 </div>
                                 {i === 0 && (
                                     <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-100">
@@ -407,6 +422,53 @@ export default function SessionPanel({
                     </ol>
                 </div>
             )}
+
+
+            {/* Skipped list */}
+            {skipped.length > 0 && (
+                <div className="mt-5">
+                    <h4 className="mb-2 text-sm font-semibold text-slate-800">Skipped ({skipped.length})</h4>
+                    <ul className={`divide-y divide-white/70 ${inner}`}>
+                        {skipped.map((t) => (
+                            <li key={t.id} className="flex flex-wrap items-center gap-3 px-3.5 py-2.5">
+                                <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-slate-800">
+                                    {tokenLabel(t.tokenNumber)}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-medium text-slate-800">{t.patientName}</p>
+                                    <PhoneLink phone={t.patientPhone} className="text-indigo-600" />
+                                </div>
+                                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
+                                    Skipped {t.skipCount}x
+                                </span>
+                                {!readOnly && !ended && (
+                                    <>
+                                        <Btn
+                                            disabled={busy}
+                                            loading={isPending(t.id, "restore")}
+                                            loadingText="Restoring..."
+                                            onClick={() => void onToken(t.id, "restore")}
+                                            className={`${primaryBtn} px-3! py-1.5! text-xs!`}
+                                        >
+                                            Back to queue
+                                        </Btn>
+                                        <ConfirmButton
+                                            label="Cancel"
+                                            question="Cancel?"
+                                            disabled={busy}
+                                            loading={isPending(t.id, "cancel")}
+                                            loadingText="Cancelling..."
+                                            onConfirm={() => void onToken(t.id, "cancel")}
+                                            className={smallDangerBtn}
+                                        />
+                                    </>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
 
             {/* Finished tokens */}
             {done.length > 0 && (
