@@ -1,9 +1,9 @@
 // inngest/function.ts
 
-
 import { prisma } from "@/lib/prisma";
 import { inngest } from "./client";
-import { razorpay } from "@/lib/razorpay";
+import { fetchPayments } from "@/lib/cashfree";
+import { applySuccessfulPayment } from "@/lib/payment-confirm";
 
 // inggest create user data
 
@@ -17,7 +17,7 @@ export const syncUserCreate = inngest.createFunction({
 },
 
     async ({ event }) => {
-        const {data} = event ;
+        const { data } = event;
         await prisma.user.create({
             data: {
                 id: data.id,
@@ -95,8 +95,7 @@ export const expireUnpaidTokens = inngest.createFunction(
                 take: BATCH,
                 select: {
                     id: true,
-                    sessionId: true,
-                    payment: { select: { id: true, razorpayOrderId: true } },
+                    payment: { select: { cashfreeOrderId: true } },
                 },
             });
 
@@ -104,54 +103,40 @@ export const expireUnpaidTokens = inngest.createFunction(
             let confirmed = 0;
 
             for (const b of stale) {
-                // Razorpay se poocho: kya is order pe paisa kat chuka hai?
-                let captured: any = null;
+                // Cashfree se poocho: kya is order pe paisa kat chuka hai?
                 if (b.payment) {
+                    let success: Awaited<ReturnType<typeof fetchPayments>>[number] | undefined;
                     try {
-                        const res: any = await razorpay.orders.fetchPayments(b.payment.razorpayOrderId);
-                        captured = res.items?.find((p: any) => p.status === "captured") ?? null;
+                        const attempts = await fetchPayments(b.payment.cashfreeOrderId);
+                        success = attempts.find((a) => a.payment_status === "SUCCESS");
                     } catch (err) {
-                        // Razorpay se jawab nahi mila: expire mat karo, agli baar dobara dekhenge
-                        console.error("expireUnpaidTokens: Razorpay check failed", b.id, err);
+                        // Cashfree se jawab nahi mila: expire mat karo, agli baar dobara dekhenge
+                        console.error("expireUnpaidTokens: Cashfree check failed", b.id, err);
                         continue;
+                    }
+
+                    // Paisa kata hua hai: token confirm karo (webhook/verify miss ho gaye the)
+                    if (success) {
+                        const result = await applySuccessfulPayment(b.payment.cashfreeOrderId, {
+                            cfPaymentId: String(success.cf_payment_id),
+                            amountRupees: success.payment_amount,
+                            method: success.payment_group,
+                        });
+                        if (result === "CONFIRMED") confirmed++;
+                        continue; // confirm ho gaya, ya koi dikkat hai: dono me expire nahi karna
                     }
                 }
 
-                // Paisa kata hua hai: token confirm karo (webhook/verify miss ho gaye the)
-                if (captured && b.payment) {
-                    const payment = b.payment;
-                    const ok = await prisma.$transaction(async (tx) => {
-                        const upd = await tx.booking.updateMany({
-                            where: { id: b.id, status: "PENDING_PAYMENT" },
-                            data: { status: "CONFIRMED", expiresAt: null },
-                        });
-                        if (upd.count !== 1) return false;
-
-                        await tx.payment.update({
-                            where: { id: payment.id },
-                            data: {
-                                status: "PAID",
-                                razorpayPaymentId: captured.id,
-                                gatewayFee: captured.fee ?? 0,
-                                gatewayTax: captured.tax ?? 0,
-                                method: captured.method ?? null,
-                                paidAt: new Date(),
-                            },
-                        });
-                        await tx.doctorSession.update({
-                            where: { id: b.sessionId },
-                            data: { queueVersion: { increment: 1 } },
-                        });
-                        return true;
-                    });
-                    if (ok) confirmed++;
-                    continue;
-                }
-
-                // Paisa nahi kata: token expire
+               
+                // Paisa nahi kata: token expire (number free ho jata hai)
                 const upd = await prisma.booking.updateMany({
                     where: { id: b.id, status: "PENDING_PAYMENT" },
-                    data: { status: "EXPIRED", cancelledBy: "SYSTEM", cancelReason: "PAYMENT_TIMEOUT" },
+                    data: {
+                        status: "EXPIRED",
+                        activeTokenNumber: null,
+                        cancelledBy: "SYSTEM",
+                        cancelReason: "PAYMENT_TIMEOUT",
+                    },
                 });
                 expired += upd.count;
             }

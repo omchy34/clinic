@@ -89,7 +89,7 @@ export async function GET(request: Request) {
               method: true,
               gatewayFee: true,
               gatewayTax: true,
-              razorpayPaymentId: true,
+              cashfreePaymentId: true,
               refunds: {
                 orderBy: { createdAt: "desc" },
                 take: 1,
@@ -174,7 +174,7 @@ export async function GET(request: Request) {
             paidRupees: paid ? rupees(b.amount) : 0,
             feeRupees: paid && p ? rupees(p.gatewayFee + p.gatewayTax) : 0,
             method: p?.method ?? null,
-            paymentId: p?.razorpayPaymentId ?? null,
+            paymentId: p?.cashfreePaymentId ?? null,
             refund: r ? { rupees: rupees(r.amount), feeRupees: rupees(r.deductedFee), status: r.status } : null,
           };
         }),

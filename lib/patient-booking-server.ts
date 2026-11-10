@@ -23,14 +23,19 @@ import {
   type MyToken,
   type PatientSession,
 } from "@/lib/patient-booking";
-import { razorpay } from "@/lib/razorpay";
+import { createOrder, cashfreeMode } from "@/lib/cashfree";
 
 const PAYMENT_WINDOW_MS = 10 * 60 * 1000; // payment ke liye 10 min
 const DEFAULT_TOKEN_PRICE = 2000; // ₹20, agar admin ne abhi tak set nahi kiya
 
 export type BookTokenResult = BookedToken & {
   free: boolean;
-  payment?: { orderId: string; amount: number; keyId: string };
+  payment?: {
+    orderId: string;
+    paymentSessionId: string;
+    amount: number;
+    mode: "sandbox" | "production";
+  };
 };
 /* ---------------------------------- auth ---------------------------------- */
 
@@ -118,8 +123,9 @@ function closedMessage(status: BookingStatus, opensAt: Date, now: Date): string 
   return "Booking is closed for this session.";
 }
 
-// Gives the patient the next token number of a session. Rejects when the window is closed.
-// Free session: token seedha CONFIRMED. Paid session: PENDING_PAYMENT + Razorpay order.
+// Gives the patient a token number of a session. Rejects when the window is closed.
+// Token number = sabse chhota khali number (failed/expired token ka number dobara milta hai).
+// Free session: token seedha CONFIRMED. Paid session: PENDING_PAYMENT + Cashfree order.
 export async function bookToken(
   userId: string,
   sessionId: string,
@@ -157,9 +163,14 @@ export async function bookToken(
       expiresAt: { gt: now },
       payment: { isNot: null },
     },
-    select: { id: true, tokenNumber: true, amount: true, payment: { select: { razorpayOrderId: true } } },
+    select: {
+      id: true,
+      tokenNumber: true,
+      amount: true,
+      payment: { select: { cashfreeOrderId: true, cashfreeSessionId: true } },
+    },
   });
-  if (pending?.payment) {
+  if (pending?.payment?.cashfreeSessionId) {
     const ahead = await prisma.booking.count({ where: { sessionId, status: "CONFIRMED" } });
     return {
       id: pending.id,
@@ -167,9 +178,10 @@ export async function bookToken(
       ahead,
       free: false,
       payment: {
-        orderId: pending.payment.razorpayOrderId,
+        orderId: pending.payment.cashfreeOrderId,
+        paymentSessionId: pending.payment.cashfreeSessionId,
         amount: pending.amount,
-        keyId: process.env.RAZORPAY_KEY_ID!,
+        mode: cashfreeMode,
       },
     };
   }
@@ -187,7 +199,7 @@ export async function bookToken(
         bookingOpensAt: { lte: now },
         bookingClosesAt: { gt: now },
       },
-      data: { lastTokenNumber: { increment: 1 }, queueVersion: { increment: 1 } },
+      data: { queueVersion: { increment: 1 } },
     });
     if (claim.count === 0) throw new ApiError(409, "Booking has just closed for this session.");
 
@@ -206,17 +218,25 @@ export async function bookToken(
       throw new ApiError(409, `You already have ${MAX_ACTIVE_TOKENS} active tokens for this session.`);
     }
 
-    const { lastTokenNumber } = await tx.doctorSession.findUniqueOrThrow({
-      where: { id: sessionId },
-      select: { lastTokenNumber: true },
+    // Sabse chhota khali token number. Failed/expired token ka number yahan dobara mil jata hai.
+    const taken = await tx.booking.findMany({
+      where: { sessionId, activeTokenNumber: { not: null } },
+      orderBy: { activeTokenNumber: "asc" },
+      select: { activeTokenNumber: true },
     });
+    let tokenNumber = 1;
+    for (const t of taken) {
+      if (t.activeTokenNumber === tokenNumber) tokenNumber++;
+      else break;
+    }
+
     const setting = await tx.platformSetting.findUnique({
       where: { id: "global" },
       select: { tokenPrice: true },
     });
     const tokenPrice = setting?.tokenPrice ?? DEFAULT_TOKEN_PRICE;
 
-    // Razorpay ka minimum order ₹1 (100 paise) hai
+    // Cashfree ka minimum order ₹1 (100 paise) hai
     if (tokenPrice > 0 && tokenPrice < 100) {
       throw new ApiError(500, "Token price is invalid. Please contact the clinic.");
     }
@@ -226,9 +246,16 @@ export async function bookToken(
     const last = await tx.booking.aggregate({ where: { sessionId }, _max: { queuePosition: true } });
     const ahead = await tx.booking.count({ where: { sessionId, status: "CONFIRMED" } });
 
+    // lastTokenNumber ab "ab tak ka sabse bada number" hai
+    await tx.doctorSession.updateMany({
+      where: { id: sessionId, lastTokenNumber: { lt: tokenNumber } },
+      data: { lastTokenNumber: tokenNumber },
+    });
+
     const booking = await tx.booking.create({
       data: {
-        tokenNumber: lastTokenNumber,
+        tokenNumber,
+        activeTokenNumber: tokenNumber,
         queuePosition: (last._max.queuePosition ?? 0) + 1,
         status: free ? "CONFIRMED" : "PENDING_PAYMENT",
         amount: tokenPrice,
@@ -242,7 +269,7 @@ export async function bookToken(
       select: { id: true },
     });
 
-    return { id: booking.id, tokenNumber: lastTokenNumber, ahead, price: tokenPrice };
+    return { id: booking.id, tokenNumber, ahead, price: tokenPrice };
   });
 
   // Free token: payment ki zaroorat nahi
@@ -250,16 +277,23 @@ export async function bookToken(
     return { id: created.id, tokenNumber: created.tokenNumber, ahead: created.ahead, free: true };
   }
 
-  // Paid token: Razorpay order (network call, isliye transaction ke bahar)
+  // Paid token: Cashfree order (network call, isliye transaction ke bahar)
   try {
-    const order = await razorpay.orders.create({
-      amount: created.price,
-      currency: "INR",
-      receipt: created.id,
-      notes: { bookingId: created.id },
+    const order = await createOrder({
+      orderId: `tok_${created.id}`,
+      amountPaise: created.price,
+      customerId: userId,
+      customerPhone: patientPhone,
+      customerName: patientName.trim(),
+      note: `Token #${created.tokenNumber}`,
     });
     await prisma.payment.create({
-      data: { bookingId: created.id, amount: created.price, razorpayOrderId: order.id },
+      data: {
+        bookingId: created.id,
+        amount: created.price,
+        cashfreeOrderId: order.order_id,
+        cashfreeSessionId: order.payment_session_id,
+      },
     });
 
     return {
@@ -267,16 +301,21 @@ export async function bookToken(
       tokenNumber: created.tokenNumber,
       ahead: created.ahead,
       free: false,
-      payment: { orderId: order.id, amount: created.price, keyId: process.env.RAZORPAY_KEY_ID! },
+      payment: {
+        orderId: order.order_id,
+        paymentSessionId: order.payment_session_id,
+        amount: created.price,
+        mode: cashfreeMode,
+      },
     };
   } catch (err) {
-    console.error("bookToken: Razorpay order failed", err);
-    // Token chhod do, taaki queue me unpaid token na atke
+    console.error("bookToken: Cashfree order failed", err);
+    // Token chhod do: EXPIRED + activeTokenNumber null, taaki number dusre ko mil sake
     await prisma.booking.updateMany({
       where: { id: created.id, status: "PENDING_PAYMENT" },
       data: {
-        status: "CANCELLED",
-        cancelledAt: new Date(),
+        status: "EXPIRED",
+        activeTokenNumber: null,
         cancelledBy: "SYSTEM",
         cancelReason: "ORDER_CREATE_FAILED",
       },
@@ -372,15 +411,17 @@ export async function loadMyTokens(userId: string): Promise<MyToken[]> {
       const date = s.date.toISOString().slice(0, 10);
       const timezone = b.clinic.timezone;
       const waiting = b.status === "CONFIRMED";
-      const paid = !!b.payment && (b.payment.status === "PAID" ||
-        b.payment.status === "PARTIALLY_REFUNDED" ||
-        b.payment.status === "REFUNDED");
+      const paid =
+        !!b.payment &&
+        (b.payment.status === "PAID" ||
+          b.payment.status === "PARTIALLY_REFUNDED" ||
+          b.payment.status === "REFUNDED");
       const r = b.payment?.refunds[0];
 
       const ahead = waiting
         ? await prisma.booking.count({
-          where: { sessionId: s.id, status: "CONFIRMED", queuePosition: { lt: b.queuePosition } },
-        })
+            where: { sessionId: s.id, status: "CONFIRMED", queuePosition: { lt: b.queuePosition } },
+          })
         : 0;
 
       let estimate: MyToken["estimate"] = null;

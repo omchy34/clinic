@@ -24,9 +24,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Apana Clinic — Care that keeps pace with you",
+  title: "Doctors Token — Care that keeps pace with you",
   description:
-    "Apana Clinic offers multi-specialty and surgical care with same-week appointments, led by a team you can actually reach.",
+    "Doctors Token offers multi-specialty and surgical care with same-week appointments, led by a team you can actually reach.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

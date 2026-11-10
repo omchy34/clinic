@@ -7910,6 +7910,7 @@ export namespace Prisma {
 
   export type BookingAvgAggregateOutputType = {
     tokenNumber: number | null
+    activeTokenNumber: number | null
     queuePosition: number | null
     amount: number | null
     skipCount: number | null
@@ -7917,6 +7918,7 @@ export namespace Prisma {
 
   export type BookingSumAggregateOutputType = {
     tokenNumber: number | null
+    activeTokenNumber: number | null
     queuePosition: number | null
     amount: number | null
     skipCount: number | null
@@ -7925,6 +7927,7 @@ export namespace Prisma {
   export type BookingMinAggregateOutputType = {
     id: string | null
     tokenNumber: number | null
+    activeTokenNumber: number | null
     queuePosition: number | null
     status: $Enums.BookingStatus | null
     patientName: string | null
@@ -7947,6 +7950,7 @@ export namespace Prisma {
   export type BookingMaxAggregateOutputType = {
     id: string | null
     tokenNumber: number | null
+    activeTokenNumber: number | null
     queuePosition: number | null
     status: $Enums.BookingStatus | null
     patientName: string | null
@@ -7969,6 +7973,7 @@ export namespace Prisma {
   export type BookingCountAggregateOutputType = {
     id: number
     tokenNumber: number
+    activeTokenNumber: number
     queuePosition: number
     status: number
     patientName: number
@@ -7992,6 +7997,7 @@ export namespace Prisma {
 
   export type BookingAvgAggregateInputType = {
     tokenNumber?: true
+    activeTokenNumber?: true
     queuePosition?: true
     amount?: true
     skipCount?: true
@@ -7999,6 +8005,7 @@ export namespace Prisma {
 
   export type BookingSumAggregateInputType = {
     tokenNumber?: true
+    activeTokenNumber?: true
     queuePosition?: true
     amount?: true
     skipCount?: true
@@ -8007,6 +8014,7 @@ export namespace Prisma {
   export type BookingMinAggregateInputType = {
     id?: true
     tokenNumber?: true
+    activeTokenNumber?: true
     queuePosition?: true
     status?: true
     patientName?: true
@@ -8029,6 +8037,7 @@ export namespace Prisma {
   export type BookingMaxAggregateInputType = {
     id?: true
     tokenNumber?: true
+    activeTokenNumber?: true
     queuePosition?: true
     status?: true
     patientName?: true
@@ -8051,6 +8060,7 @@ export namespace Prisma {
   export type BookingCountAggregateInputType = {
     id?: true
     tokenNumber?: true
+    activeTokenNumber?: true
     queuePosition?: true
     status?: true
     patientName?: true
@@ -8160,6 +8170,7 @@ export namespace Prisma {
   export type BookingGroupByOutputType = {
     id: string
     tokenNumber: number
+    activeTokenNumber: number | null
     queuePosition: number
     status: $Enums.BookingStatus
     patientName: string | null
@@ -8201,6 +8212,7 @@ export namespace Prisma {
   export type BookingSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     tokenNumber?: boolean
+    activeTokenNumber?: boolean
     queuePosition?: boolean
     status?: boolean
     patientName?: boolean
@@ -8228,6 +8240,7 @@ export namespace Prisma {
   export type BookingSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     tokenNumber?: boolean
+    activeTokenNumber?: boolean
     queuePosition?: boolean
     status?: boolean
     patientName?: boolean
@@ -8253,6 +8266,7 @@ export namespace Prisma {
   export type BookingSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     tokenNumber?: boolean
+    activeTokenNumber?: boolean
     queuePosition?: boolean
     status?: boolean
     patientName?: boolean
@@ -8278,6 +8292,7 @@ export namespace Prisma {
   export type BookingSelectScalar = {
     id?: boolean
     tokenNumber?: boolean
+    activeTokenNumber?: boolean
     queuePosition?: boolean
     status?: boolean
     patientName?: boolean
@@ -8297,7 +8312,7 @@ export namespace Prisma {
     cancelReason?: boolean
   }
 
-  export type BookingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tokenNumber" | "queuePosition" | "status" | "patientName" | "patientPhone" | "amount" | "expiresAt" | "skipCount" | "lastSkippedAt" | "userId" | "clinicId" | "sessionId" | "createdAt" | "calledAt" | "completedAt" | "cancelledAt" | "cancelledBy" | "cancelReason", ExtArgs["result"]["booking"]>
+  export type BookingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tokenNumber" | "activeTokenNumber" | "queuePosition" | "status" | "patientName" | "patientPhone" | "amount" | "expiresAt" | "skipCount" | "lastSkippedAt" | "userId" | "clinicId" | "sessionId" | "createdAt" | "calledAt" | "completedAt" | "cancelledAt" | "cancelledBy" | "cancelReason", ExtArgs["result"]["booking"]>
   export type BookingInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
     clinic?: boolean | ClinicDefaultArgs<ExtArgs>
@@ -8328,6 +8343,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       tokenNumber: number
+      activeTokenNumber: number | null
       queuePosition: number
       status: $Enums.BookingStatus
       patientName: string | null
@@ -8775,6 +8791,7 @@ export namespace Prisma {
   interface BookingFieldRefs {
     readonly id: FieldRef<"Booking", 'String'>
     readonly tokenNumber: FieldRef<"Booking", 'Int'>
+    readonly activeTokenNumber: FieldRef<"Booking", 'Int'>
     readonly queuePosition: FieldRef<"Booking", 'Int'>
     readonly status: FieldRef<"Booking", 'BookingStatus'>
     readonly patientName: FieldRef<"Booking", 'String'>
@@ -9281,8 +9298,9 @@ export namespace Prisma {
     amount: number | null
     currency: string | null
     status: $Enums.PaymentStatus | null
-    razorpayOrderId: string | null
-    razorpayPaymentId: string | null
+    cashfreeOrderId: string | null
+    cashfreeSessionId: string | null
+    cashfreePaymentId: string | null
     method: string | null
     failureReason: string | null
     gatewayFee: number | null
@@ -9299,8 +9317,9 @@ export namespace Prisma {
     amount: number | null
     currency: string | null
     status: $Enums.PaymentStatus | null
-    razorpayOrderId: string | null
-    razorpayPaymentId: string | null
+    cashfreeOrderId: string | null
+    cashfreeSessionId: string | null
+    cashfreePaymentId: string | null
     method: string | null
     failureReason: string | null
     gatewayFee: number | null
@@ -9317,8 +9336,9 @@ export namespace Prisma {
     amount: number
     currency: number
     status: number
-    razorpayOrderId: number
-    razorpayPaymentId: number
+    cashfreeOrderId: number
+    cashfreeSessionId: number
+    cashfreePaymentId: number
     method: number
     failureReason: number
     gatewayFee: number
@@ -9351,8 +9371,9 @@ export namespace Prisma {
     amount?: true
     currency?: true
     status?: true
-    razorpayOrderId?: true
-    razorpayPaymentId?: true
+    cashfreeOrderId?: true
+    cashfreeSessionId?: true
+    cashfreePaymentId?: true
     method?: true
     failureReason?: true
     gatewayFee?: true
@@ -9369,8 +9390,9 @@ export namespace Prisma {
     amount?: true
     currency?: true
     status?: true
-    razorpayOrderId?: true
-    razorpayPaymentId?: true
+    cashfreeOrderId?: true
+    cashfreeSessionId?: true
+    cashfreePaymentId?: true
     method?: true
     failureReason?: true
     gatewayFee?: true
@@ -9387,8 +9409,9 @@ export namespace Prisma {
     amount?: true
     currency?: true
     status?: true
-    razorpayOrderId?: true
-    razorpayPaymentId?: true
+    cashfreeOrderId?: true
+    cashfreeSessionId?: true
+    cashfreePaymentId?: true
     method?: true
     failureReason?: true
     gatewayFee?: true
@@ -9492,8 +9515,9 @@ export namespace Prisma {
     amount: number
     currency: string
     status: $Enums.PaymentStatus
-    razorpayOrderId: string
-    razorpayPaymentId: string | null
+    cashfreeOrderId: string
+    cashfreeSessionId: string | null
+    cashfreePaymentId: string | null
     method: string | null
     failureReason: string | null
     gatewayFee: number
@@ -9529,8 +9553,9 @@ export namespace Prisma {
     amount?: boolean
     currency?: boolean
     status?: boolean
-    razorpayOrderId?: boolean
-    razorpayPaymentId?: boolean
+    cashfreeOrderId?: boolean
+    cashfreeSessionId?: boolean
+    cashfreePaymentId?: boolean
     method?: boolean
     failureReason?: boolean
     gatewayFee?: boolean
@@ -9550,8 +9575,9 @@ export namespace Prisma {
     amount?: boolean
     currency?: boolean
     status?: boolean
-    razorpayOrderId?: boolean
-    razorpayPaymentId?: boolean
+    cashfreeOrderId?: boolean
+    cashfreeSessionId?: boolean
+    cashfreePaymentId?: boolean
     method?: boolean
     failureReason?: boolean
     gatewayFee?: boolean
@@ -9569,8 +9595,9 @@ export namespace Prisma {
     amount?: boolean
     currency?: boolean
     status?: boolean
-    razorpayOrderId?: boolean
-    razorpayPaymentId?: boolean
+    cashfreeOrderId?: boolean
+    cashfreeSessionId?: boolean
+    cashfreePaymentId?: boolean
     method?: boolean
     failureReason?: boolean
     gatewayFee?: boolean
@@ -9588,8 +9615,9 @@ export namespace Prisma {
     amount?: boolean
     currency?: boolean
     status?: boolean
-    razorpayOrderId?: boolean
-    razorpayPaymentId?: boolean
+    cashfreeOrderId?: boolean
+    cashfreeSessionId?: boolean
+    cashfreePaymentId?: boolean
     method?: boolean
     failureReason?: boolean
     gatewayFee?: boolean
@@ -9600,7 +9628,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type PaymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookingId" | "amount" | "currency" | "status" | "razorpayOrderId" | "razorpayPaymentId" | "method" | "failureReason" | "gatewayFee" | "gatewayTax" | "refundedAmount" | "paidAt" | "createdAt" | "updatedAt", ExtArgs["result"]["payment"]>
+  export type PaymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookingId" | "amount" | "currency" | "status" | "cashfreeOrderId" | "cashfreeSessionId" | "cashfreePaymentId" | "method" | "failureReason" | "gatewayFee" | "gatewayTax" | "refundedAmount" | "paidAt" | "createdAt" | "updatedAt", ExtArgs["result"]["payment"]>
   export type PaymentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     booking?: boolean | BookingDefaultArgs<ExtArgs>
     refunds?: boolean | Payment$refundsArgs<ExtArgs>
@@ -9625,8 +9653,9 @@ export namespace Prisma {
       amount: number
       currency: string
       status: $Enums.PaymentStatus
-      razorpayOrderId: string
-      razorpayPaymentId: string | null
+      cashfreeOrderId: string
+      cashfreeSessionId: string | null
+      cashfreePaymentId: string | null
       method: string | null
       failureReason: string | null
       gatewayFee: number
@@ -10065,8 +10094,9 @@ export namespace Prisma {
     readonly amount: FieldRef<"Payment", 'Int'>
     readonly currency: FieldRef<"Payment", 'String'>
     readonly status: FieldRef<"Payment", 'PaymentStatus'>
-    readonly razorpayOrderId: FieldRef<"Payment", 'String'>
-    readonly razorpayPaymentId: FieldRef<"Payment", 'String'>
+    readonly cashfreeOrderId: FieldRef<"Payment", 'String'>
+    readonly cashfreeSessionId: FieldRef<"Payment", 'String'>
+    readonly cashfreePaymentId: FieldRef<"Payment", 'String'>
     readonly method: FieldRef<"Payment", 'String'>
     readonly failureReason: FieldRef<"Payment", 'String'>
     readonly gatewayFee: FieldRef<"Payment", 'Int'>
@@ -10547,7 +10577,7 @@ export namespace Prisma {
     deductedFee: number | null
     reason: $Enums.RefundReason | null
     status: $Enums.RefundStatus | null
-    razorpayRefundId: string | null
+    cashfreeRefundId: string | null
     failureReason: string | null
     createdAt: Date | null
     processedAt: Date | null
@@ -10560,7 +10590,7 @@ export namespace Prisma {
     deductedFee: number | null
     reason: $Enums.RefundReason | null
     status: $Enums.RefundStatus | null
-    razorpayRefundId: string | null
+    cashfreeRefundId: string | null
     failureReason: string | null
     createdAt: Date | null
     processedAt: Date | null
@@ -10573,7 +10603,7 @@ export namespace Prisma {
     deductedFee: number
     reason: number
     status: number
-    razorpayRefundId: number
+    cashfreeRefundId: number
     failureReason: number
     createdAt: number
     processedAt: number
@@ -10598,7 +10628,7 @@ export namespace Prisma {
     deductedFee?: true
     reason?: true
     status?: true
-    razorpayRefundId?: true
+    cashfreeRefundId?: true
     failureReason?: true
     createdAt?: true
     processedAt?: true
@@ -10611,7 +10641,7 @@ export namespace Prisma {
     deductedFee?: true
     reason?: true
     status?: true
-    razorpayRefundId?: true
+    cashfreeRefundId?: true
     failureReason?: true
     createdAt?: true
     processedAt?: true
@@ -10624,7 +10654,7 @@ export namespace Prisma {
     deductedFee?: true
     reason?: true
     status?: true
-    razorpayRefundId?: true
+    cashfreeRefundId?: true
     failureReason?: true
     createdAt?: true
     processedAt?: true
@@ -10724,7 +10754,7 @@ export namespace Prisma {
     deductedFee: number
     reason: $Enums.RefundReason
     status: $Enums.RefundStatus
-    razorpayRefundId: string | null
+    cashfreeRefundId: string | null
     failureReason: string | null
     createdAt: Date
     processedAt: Date | null
@@ -10756,7 +10786,7 @@ export namespace Prisma {
     deductedFee?: boolean
     reason?: boolean
     status?: boolean
-    razorpayRefundId?: boolean
+    cashfreeRefundId?: boolean
     failureReason?: boolean
     createdAt?: boolean
     processedAt?: boolean
@@ -10770,7 +10800,7 @@ export namespace Prisma {
     deductedFee?: boolean
     reason?: boolean
     status?: boolean
-    razorpayRefundId?: boolean
+    cashfreeRefundId?: boolean
     failureReason?: boolean
     createdAt?: boolean
     processedAt?: boolean
@@ -10784,7 +10814,7 @@ export namespace Prisma {
     deductedFee?: boolean
     reason?: boolean
     status?: boolean
-    razorpayRefundId?: boolean
+    cashfreeRefundId?: boolean
     failureReason?: boolean
     createdAt?: boolean
     processedAt?: boolean
@@ -10798,13 +10828,13 @@ export namespace Prisma {
     deductedFee?: boolean
     reason?: boolean
     status?: boolean
-    razorpayRefundId?: boolean
+    cashfreeRefundId?: boolean
     failureReason?: boolean
     createdAt?: boolean
     processedAt?: boolean
   }
 
-  export type RefundOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "paymentId" | "amount" | "deductedFee" | "reason" | "status" | "razorpayRefundId" | "failureReason" | "createdAt" | "processedAt", ExtArgs["result"]["refund"]>
+  export type RefundOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "paymentId" | "amount" | "deductedFee" | "reason" | "status" | "cashfreeRefundId" | "failureReason" | "createdAt" | "processedAt", ExtArgs["result"]["refund"]>
   export type RefundInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     payment?: boolean | PaymentDefaultArgs<ExtArgs>
   }
@@ -10827,7 +10857,7 @@ export namespace Prisma {
       deductedFee: number
       reason: $Enums.RefundReason
       status: $Enums.RefundStatus
-      razorpayRefundId: string | null
+      cashfreeRefundId: string | null
       failureReason: string | null
       createdAt: Date
       processedAt: Date | null
@@ -11261,7 +11291,7 @@ export namespace Prisma {
     readonly deductedFee: FieldRef<"Refund", 'Int'>
     readonly reason: FieldRef<"Refund", 'RefundReason'>
     readonly status: FieldRef<"Refund", 'RefundStatus'>
-    readonly razorpayRefundId: FieldRef<"Refund", 'String'>
+    readonly cashfreeRefundId: FieldRef<"Refund", 'String'>
     readonly failureReason: FieldRef<"Refund", 'String'>
     readonly createdAt: FieldRef<"Refund", 'DateTime'>
     readonly processedAt: FieldRef<"Refund", 'DateTime'>
@@ -13775,6 +13805,7 @@ export namespace Prisma {
   export const BookingScalarFieldEnum: {
     id: 'id',
     tokenNumber: 'tokenNumber',
+    activeTokenNumber: 'activeTokenNumber',
     queuePosition: 'queuePosition',
     status: 'status',
     patientName: 'patientName',
@@ -13803,8 +13834,9 @@ export namespace Prisma {
     amount: 'amount',
     currency: 'currency',
     status: 'status',
-    razorpayOrderId: 'razorpayOrderId',
-    razorpayPaymentId: 'razorpayPaymentId',
+    cashfreeOrderId: 'cashfreeOrderId',
+    cashfreeSessionId: 'cashfreeSessionId',
+    cashfreePaymentId: 'cashfreePaymentId',
     method: 'method',
     failureReason: 'failureReason',
     gatewayFee: 'gatewayFee',
@@ -13825,7 +13857,7 @@ export namespace Prisma {
     deductedFee: 'deductedFee',
     reason: 'reason',
     status: 'status',
-    razorpayRefundId: 'razorpayRefundId',
+    cashfreeRefundId: 'cashfreeRefundId',
     failureReason: 'failureReason',
     createdAt: 'createdAt',
     processedAt: 'processedAt'
@@ -14474,6 +14506,7 @@ export namespace Prisma {
     NOT?: BookingWhereInput | BookingWhereInput[]
     id?: StringFilter<"Booking"> | string
     tokenNumber?: IntFilter<"Booking"> | number
+    activeTokenNumber?: IntNullableFilter<"Booking"> | number | null
     queuePosition?: IntFilter<"Booking"> | number
     status?: EnumBookingStatusFilter<"Booking"> | $Enums.BookingStatus
     patientName?: StringNullableFilter<"Booking"> | string | null
@@ -14501,6 +14534,7 @@ export namespace Prisma {
   export type BookingOrderByWithRelationInput = {
     id?: SortOrder
     tokenNumber?: SortOrder
+    activeTokenNumber?: SortOrderInput | SortOrder
     queuePosition?: SortOrder
     status?: SortOrder
     patientName?: SortOrderInput | SortOrder
@@ -14528,10 +14562,12 @@ export namespace Prisma {
   export type BookingWhereUniqueInput = Prisma.AtLeast<{
     id?: string
     sessionId_tokenNumber?: BookingSessionIdTokenNumberCompoundUniqueInput
+    sessionId_activeTokenNumber?: BookingSessionIdActiveTokenNumberCompoundUniqueInput
     AND?: BookingWhereInput | BookingWhereInput[]
     OR?: BookingWhereInput[]
     NOT?: BookingWhereInput | BookingWhereInput[]
     tokenNumber?: IntFilter<"Booking"> | number
+    activeTokenNumber?: IntNullableFilter<"Booking"> | number | null
     queuePosition?: IntFilter<"Booking"> | number
     status?: EnumBookingStatusFilter<"Booking"> | $Enums.BookingStatus
     patientName?: StringNullableFilter<"Booking"> | string | null
@@ -14554,11 +14590,12 @@ export namespace Prisma {
     session?: XOR<DoctorSessionScalarRelationFilter, DoctorSessionWhereInput>
     servingIn?: XOR<DoctorSessionNullableScalarRelationFilter, DoctorSessionWhereInput> | null
     payment?: XOR<PaymentNullableScalarRelationFilter, PaymentWhereInput> | null
-  }, "id" | "sessionId_tokenNumber">
+  }, "id" | "sessionId_tokenNumber" | "sessionId_activeTokenNumber">
 
   export type BookingOrderByWithAggregationInput = {
     id?: SortOrder
     tokenNumber?: SortOrder
+    activeTokenNumber?: SortOrderInput | SortOrder
     queuePosition?: SortOrder
     status?: SortOrder
     patientName?: SortOrderInput | SortOrder
@@ -14589,6 +14626,7 @@ export namespace Prisma {
     NOT?: BookingScalarWhereWithAggregatesInput | BookingScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"Booking"> | string
     tokenNumber?: IntWithAggregatesFilter<"Booking"> | number
+    activeTokenNumber?: IntNullableWithAggregatesFilter<"Booking"> | number | null
     queuePosition?: IntWithAggregatesFilter<"Booking"> | number
     status?: EnumBookingStatusWithAggregatesFilter<"Booking"> | $Enums.BookingStatus
     patientName?: StringNullableWithAggregatesFilter<"Booking"> | string | null
@@ -14617,8 +14655,9 @@ export namespace Prisma {
     amount?: IntFilter<"Payment"> | number
     currency?: StringFilter<"Payment"> | string
     status?: EnumPaymentStatusFilter<"Payment"> | $Enums.PaymentStatus
-    razorpayOrderId?: StringFilter<"Payment"> | string
-    razorpayPaymentId?: StringNullableFilter<"Payment"> | string | null
+    cashfreeOrderId?: StringFilter<"Payment"> | string
+    cashfreeSessionId?: StringNullableFilter<"Payment"> | string | null
+    cashfreePaymentId?: StringNullableFilter<"Payment"> | string | null
     method?: StringNullableFilter<"Payment"> | string | null
     failureReason?: StringNullableFilter<"Payment"> | string | null
     gatewayFee?: IntFilter<"Payment"> | number
@@ -14637,8 +14676,9 @@ export namespace Prisma {
     amount?: SortOrder
     currency?: SortOrder
     status?: SortOrder
-    razorpayOrderId?: SortOrder
-    razorpayPaymentId?: SortOrderInput | SortOrder
+    cashfreeOrderId?: SortOrder
+    cashfreeSessionId?: SortOrderInput | SortOrder
+    cashfreePaymentId?: SortOrderInput | SortOrder
     method?: SortOrderInput | SortOrder
     failureReason?: SortOrderInput | SortOrder
     gatewayFee?: SortOrder
@@ -14654,14 +14694,15 @@ export namespace Prisma {
   export type PaymentWhereUniqueInput = Prisma.AtLeast<{
     id?: string
     bookingId?: string
-    razorpayOrderId?: string
-    razorpayPaymentId?: string
+    cashfreeOrderId?: string
+    cashfreePaymentId?: string
     AND?: PaymentWhereInput | PaymentWhereInput[]
     OR?: PaymentWhereInput[]
     NOT?: PaymentWhereInput | PaymentWhereInput[]
     amount?: IntFilter<"Payment"> | number
     currency?: StringFilter<"Payment"> | string
     status?: EnumPaymentStatusFilter<"Payment"> | $Enums.PaymentStatus
+    cashfreeSessionId?: StringNullableFilter<"Payment"> | string | null
     method?: StringNullableFilter<"Payment"> | string | null
     failureReason?: StringNullableFilter<"Payment"> | string | null
     gatewayFee?: IntFilter<"Payment"> | number
@@ -14672,7 +14713,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Payment"> | Date | string
     booking?: XOR<BookingScalarRelationFilter, BookingWhereInput>
     refunds?: RefundListRelationFilter
-  }, "id" | "bookingId" | "razorpayOrderId" | "razorpayPaymentId">
+  }, "id" | "bookingId" | "cashfreeOrderId" | "cashfreePaymentId">
 
   export type PaymentOrderByWithAggregationInput = {
     id?: SortOrder
@@ -14680,8 +14721,9 @@ export namespace Prisma {
     amount?: SortOrder
     currency?: SortOrder
     status?: SortOrder
-    razorpayOrderId?: SortOrder
-    razorpayPaymentId?: SortOrderInput | SortOrder
+    cashfreeOrderId?: SortOrder
+    cashfreeSessionId?: SortOrderInput | SortOrder
+    cashfreePaymentId?: SortOrderInput | SortOrder
     method?: SortOrderInput | SortOrder
     failureReason?: SortOrderInput | SortOrder
     gatewayFee?: SortOrder
@@ -14706,8 +14748,9 @@ export namespace Prisma {
     amount?: IntWithAggregatesFilter<"Payment"> | number
     currency?: StringWithAggregatesFilter<"Payment"> | string
     status?: EnumPaymentStatusWithAggregatesFilter<"Payment"> | $Enums.PaymentStatus
-    razorpayOrderId?: StringWithAggregatesFilter<"Payment"> | string
-    razorpayPaymentId?: StringNullableWithAggregatesFilter<"Payment"> | string | null
+    cashfreeOrderId?: StringWithAggregatesFilter<"Payment"> | string
+    cashfreeSessionId?: StringNullableWithAggregatesFilter<"Payment"> | string | null
+    cashfreePaymentId?: StringNullableWithAggregatesFilter<"Payment"> | string | null
     method?: StringNullableWithAggregatesFilter<"Payment"> | string | null
     failureReason?: StringNullableWithAggregatesFilter<"Payment"> | string | null
     gatewayFee?: IntWithAggregatesFilter<"Payment"> | number
@@ -14728,7 +14771,7 @@ export namespace Prisma {
     deductedFee?: IntFilter<"Refund"> | number
     reason?: EnumRefundReasonFilter<"Refund"> | $Enums.RefundReason
     status?: EnumRefundStatusFilter<"Refund"> | $Enums.RefundStatus
-    razorpayRefundId?: StringNullableFilter<"Refund"> | string | null
+    cashfreeRefundId?: StringNullableFilter<"Refund"> | string | null
     failureReason?: StringNullableFilter<"Refund"> | string | null
     createdAt?: DateTimeFilter<"Refund"> | Date | string
     processedAt?: DateTimeNullableFilter<"Refund"> | Date | string | null
@@ -14742,7 +14785,7 @@ export namespace Prisma {
     deductedFee?: SortOrder
     reason?: SortOrder
     status?: SortOrder
-    razorpayRefundId?: SortOrderInput | SortOrder
+    cashfreeRefundId?: SortOrderInput | SortOrder
     failureReason?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     processedAt?: SortOrderInput | SortOrder
@@ -14751,7 +14794,7 @@ export namespace Prisma {
 
   export type RefundWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    razorpayRefundId?: string
+    cashfreeRefundId?: string
     AND?: RefundWhereInput | RefundWhereInput[]
     OR?: RefundWhereInput[]
     NOT?: RefundWhereInput | RefundWhereInput[]
@@ -14764,7 +14807,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Refund"> | Date | string
     processedAt?: DateTimeNullableFilter<"Refund"> | Date | string | null
     payment?: XOR<PaymentScalarRelationFilter, PaymentWhereInput>
-  }, "id" | "razorpayRefundId">
+  }, "id" | "cashfreeRefundId">
 
   export type RefundOrderByWithAggregationInput = {
     id?: SortOrder
@@ -14773,7 +14816,7 @@ export namespace Prisma {
     deductedFee?: SortOrder
     reason?: SortOrder
     status?: SortOrder
-    razorpayRefundId?: SortOrderInput | SortOrder
+    cashfreeRefundId?: SortOrderInput | SortOrder
     failureReason?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     processedAt?: SortOrderInput | SortOrder
@@ -14794,7 +14837,7 @@ export namespace Prisma {
     deductedFee?: IntWithAggregatesFilter<"Refund"> | number
     reason?: EnumRefundReasonWithAggregatesFilter<"Refund"> | $Enums.RefundReason
     status?: EnumRefundStatusWithAggregatesFilter<"Refund"> | $Enums.RefundStatus
-    razorpayRefundId?: StringNullableWithAggregatesFilter<"Refund"> | string | null
+    cashfreeRefundId?: StringNullableWithAggregatesFilter<"Refund"> | string | null
     failureReason?: StringNullableWithAggregatesFilter<"Refund"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Refund"> | Date | string
     processedAt?: DateTimeNullableWithAggregatesFilter<"Refund"> | Date | string | null
@@ -15365,6 +15408,7 @@ export namespace Prisma {
   export type BookingCreateInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -15389,6 +15433,7 @@ export namespace Prisma {
   export type BookingUncheckedCreateInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -15413,6 +15458,7 @@ export namespace Prisma {
   export type BookingUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15437,6 +15483,7 @@ export namespace Prisma {
   export type BookingUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15461,6 +15508,7 @@ export namespace Prisma {
   export type BookingCreateManyInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -15483,6 +15531,7 @@ export namespace Prisma {
   export type BookingUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15502,6 +15551,7 @@ export namespace Prisma {
   export type BookingUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15526,8 +15576,9 @@ export namespace Prisma {
     amount: number
     currency?: string
     status?: $Enums.PaymentStatus
-    razorpayOrderId: string
-    razorpayPaymentId?: string | null
+    cashfreeOrderId: string
+    cashfreeSessionId?: string | null
+    cashfreePaymentId?: string | null
     method?: string | null
     failureReason?: string | null
     gatewayFee?: number
@@ -15546,8 +15597,9 @@ export namespace Prisma {
     amount: number
     currency?: string
     status?: $Enums.PaymentStatus
-    razorpayOrderId: string
-    razorpayPaymentId?: string | null
+    cashfreeOrderId: string
+    cashfreeSessionId?: string | null
+    cashfreePaymentId?: string | null
     method?: string | null
     failureReason?: string | null
     gatewayFee?: number
@@ -15564,8 +15616,9 @@ export namespace Prisma {
     amount?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     status?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
-    razorpayOrderId?: StringFieldUpdateOperationsInput | string
-    razorpayPaymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreeOrderId?: StringFieldUpdateOperationsInput | string
+    cashfreeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreePaymentId?: NullableStringFieldUpdateOperationsInput | string | null
     method?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
     gatewayFee?: IntFieldUpdateOperationsInput | number
@@ -15584,8 +15637,9 @@ export namespace Prisma {
     amount?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     status?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
-    razorpayOrderId?: StringFieldUpdateOperationsInput | string
-    razorpayPaymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreeOrderId?: StringFieldUpdateOperationsInput | string
+    cashfreeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreePaymentId?: NullableStringFieldUpdateOperationsInput | string | null
     method?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
     gatewayFee?: IntFieldUpdateOperationsInput | number
@@ -15603,8 +15657,9 @@ export namespace Prisma {
     amount: number
     currency?: string
     status?: $Enums.PaymentStatus
-    razorpayOrderId: string
-    razorpayPaymentId?: string | null
+    cashfreeOrderId: string
+    cashfreeSessionId?: string | null
+    cashfreePaymentId?: string | null
     method?: string | null
     failureReason?: string | null
     gatewayFee?: number
@@ -15620,8 +15675,9 @@ export namespace Prisma {
     amount?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     status?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
-    razorpayOrderId?: StringFieldUpdateOperationsInput | string
-    razorpayPaymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreeOrderId?: StringFieldUpdateOperationsInput | string
+    cashfreeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreePaymentId?: NullableStringFieldUpdateOperationsInput | string | null
     method?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
     gatewayFee?: IntFieldUpdateOperationsInput | number
@@ -15638,8 +15694,9 @@ export namespace Prisma {
     amount?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     status?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
-    razorpayOrderId?: StringFieldUpdateOperationsInput | string
-    razorpayPaymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreeOrderId?: StringFieldUpdateOperationsInput | string
+    cashfreeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreePaymentId?: NullableStringFieldUpdateOperationsInput | string | null
     method?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
     gatewayFee?: IntFieldUpdateOperationsInput | number
@@ -15656,7 +15713,7 @@ export namespace Prisma {
     deductedFee?: number
     reason: $Enums.RefundReason
     status?: $Enums.RefundStatus
-    razorpayRefundId?: string | null
+    cashfreeRefundId?: string | null
     failureReason?: string | null
     createdAt?: Date | string
     processedAt?: Date | string | null
@@ -15670,7 +15727,7 @@ export namespace Prisma {
     deductedFee?: number
     reason: $Enums.RefundReason
     status?: $Enums.RefundStatus
-    razorpayRefundId?: string | null
+    cashfreeRefundId?: string | null
     failureReason?: string | null
     createdAt?: Date | string
     processedAt?: Date | string | null
@@ -15682,7 +15739,7 @@ export namespace Prisma {
     deductedFee?: IntFieldUpdateOperationsInput | number
     reason?: EnumRefundReasonFieldUpdateOperationsInput | $Enums.RefundReason
     status?: EnumRefundStatusFieldUpdateOperationsInput | $Enums.RefundStatus
-    razorpayRefundId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreeRefundId?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -15696,7 +15753,7 @@ export namespace Prisma {
     deductedFee?: IntFieldUpdateOperationsInput | number
     reason?: EnumRefundReasonFieldUpdateOperationsInput | $Enums.RefundReason
     status?: EnumRefundStatusFieldUpdateOperationsInput | $Enums.RefundStatus
-    razorpayRefundId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreeRefundId?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -15709,7 +15766,7 @@ export namespace Prisma {
     deductedFee?: number
     reason: $Enums.RefundReason
     status?: $Enums.RefundStatus
-    razorpayRefundId?: string | null
+    cashfreeRefundId?: string | null
     failureReason?: string | null
     createdAt?: Date | string
     processedAt?: Date | string | null
@@ -15721,7 +15778,7 @@ export namespace Prisma {
     deductedFee?: IntFieldUpdateOperationsInput | number
     reason?: EnumRefundReasonFieldUpdateOperationsInput | $Enums.RefundReason
     status?: EnumRefundStatusFieldUpdateOperationsInput | $Enums.RefundStatus
-    razorpayRefundId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreeRefundId?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -15734,7 +15791,7 @@ export namespace Prisma {
     deductedFee?: IntFieldUpdateOperationsInput | number
     reason?: EnumRefundReasonFieldUpdateOperationsInput | $Enums.RefundReason
     status?: EnumRefundStatusFieldUpdateOperationsInput | $Enums.RefundStatus
-    razorpayRefundId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreeRefundId?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -16319,6 +16376,17 @@ export namespace Prisma {
     _max?: NestedEnumQueueStatusFilter<$PrismaModel>
   }
 
+  export type IntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+
   export type EnumBookingStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.BookingStatus | EnumBookingStatusFieldRefInput<$PrismaModel>
     in?: $Enums.BookingStatus[] | ListEnumBookingStatusFieldRefInput<$PrismaModel>
@@ -16353,9 +16421,15 @@ export namespace Prisma {
     tokenNumber: number
   }
 
+  export type BookingSessionIdActiveTokenNumberCompoundUniqueInput = {
+    sessionId: string
+    activeTokenNumber: number
+  }
+
   export type BookingCountOrderByAggregateInput = {
     id?: SortOrder
     tokenNumber?: SortOrder
+    activeTokenNumber?: SortOrder
     queuePosition?: SortOrder
     status?: SortOrder
     patientName?: SortOrder
@@ -16377,6 +16451,7 @@ export namespace Prisma {
 
   export type BookingAvgOrderByAggregateInput = {
     tokenNumber?: SortOrder
+    activeTokenNumber?: SortOrder
     queuePosition?: SortOrder
     amount?: SortOrder
     skipCount?: SortOrder
@@ -16385,6 +16460,7 @@ export namespace Prisma {
   export type BookingMaxOrderByAggregateInput = {
     id?: SortOrder
     tokenNumber?: SortOrder
+    activeTokenNumber?: SortOrder
     queuePosition?: SortOrder
     status?: SortOrder
     patientName?: SortOrder
@@ -16407,6 +16483,7 @@ export namespace Prisma {
   export type BookingMinOrderByAggregateInput = {
     id?: SortOrder
     tokenNumber?: SortOrder
+    activeTokenNumber?: SortOrder
     queuePosition?: SortOrder
     status?: SortOrder
     patientName?: SortOrder
@@ -16428,9 +16505,26 @@ export namespace Prisma {
 
   export type BookingSumOrderByAggregateInput = {
     tokenNumber?: SortOrder
+    activeTokenNumber?: SortOrder
     queuePosition?: SortOrder
     amount?: SortOrder
     skipCount?: SortOrder
+  }
+
+  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
   export type EnumBookingStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -16481,8 +16575,9 @@ export namespace Prisma {
     amount?: SortOrder
     currency?: SortOrder
     status?: SortOrder
-    razorpayOrderId?: SortOrder
-    razorpayPaymentId?: SortOrder
+    cashfreeOrderId?: SortOrder
+    cashfreeSessionId?: SortOrder
+    cashfreePaymentId?: SortOrder
     method?: SortOrder
     failureReason?: SortOrder
     gatewayFee?: SortOrder
@@ -16506,8 +16601,9 @@ export namespace Prisma {
     amount?: SortOrder
     currency?: SortOrder
     status?: SortOrder
-    razorpayOrderId?: SortOrder
-    razorpayPaymentId?: SortOrder
+    cashfreeOrderId?: SortOrder
+    cashfreeSessionId?: SortOrder
+    cashfreePaymentId?: SortOrder
     method?: SortOrder
     failureReason?: SortOrder
     gatewayFee?: SortOrder
@@ -16524,8 +16620,9 @@ export namespace Prisma {
     amount?: SortOrder
     currency?: SortOrder
     status?: SortOrder
-    razorpayOrderId?: SortOrder
-    razorpayPaymentId?: SortOrder
+    cashfreeOrderId?: SortOrder
+    cashfreeSessionId?: SortOrder
+    cashfreePaymentId?: SortOrder
     method?: SortOrder
     failureReason?: SortOrder
     gatewayFee?: SortOrder
@@ -16579,7 +16676,7 @@ export namespace Prisma {
     deductedFee?: SortOrder
     reason?: SortOrder
     status?: SortOrder
-    razorpayRefundId?: SortOrder
+    cashfreeRefundId?: SortOrder
     failureReason?: SortOrder
     createdAt?: SortOrder
     processedAt?: SortOrder
@@ -16597,7 +16694,7 @@ export namespace Prisma {
     deductedFee?: SortOrder
     reason?: SortOrder
     status?: SortOrder
-    razorpayRefundId?: SortOrder
+    cashfreeRefundId?: SortOrder
     failureReason?: SortOrder
     createdAt?: SortOrder
     processedAt?: SortOrder
@@ -16610,7 +16707,7 @@ export namespace Prisma {
     deductedFee?: SortOrder
     reason?: SortOrder
     status?: SortOrder
-    razorpayRefundId?: SortOrder
+    cashfreeRefundId?: SortOrder
     failureReason?: SortOrder
     createdAt?: SortOrder
     processedAt?: SortOrder
@@ -17131,6 +17228,14 @@ export namespace Prisma {
     connect?: PaymentWhereUniqueInput
   }
 
+  export type NullableIntFieldUpdateOperationsInput = {
+    set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
   export type EnumBookingStatusFieldUpdateOperationsInput = {
     set?: $Enums.BookingStatus
   }
@@ -17507,6 +17612,33 @@ export namespace Prisma {
     not?: NestedEnumCancelledByNullableFilter<$PrismaModel> | $Enums.CancelledBy | null
   }
 
+  export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
+  }
+
+  export type NestedFloatNullableFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
   export type NestedEnumBookingStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.BookingStatus | EnumBookingStatusFieldRefInput<$PrismaModel>
     in?: $Enums.BookingStatus[] | ListEnumBookingStatusFieldRefInput<$PrismaModel>
@@ -17620,6 +17752,7 @@ export namespace Prisma {
   export type BookingCreateWithoutUserInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -17643,6 +17776,7 @@ export namespace Prisma {
   export type BookingUncheckedCreateWithoutUserInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -17740,6 +17874,7 @@ export namespace Prisma {
     NOT?: BookingScalarWhereInput | BookingScalarWhereInput[]
     id?: StringFilter<"Booking"> | string
     tokenNumber?: IntFilter<"Booking"> | number
+    activeTokenNumber?: IntNullableFilter<"Booking"> | number | null
     queuePosition?: IntFilter<"Booking"> | number
     status?: EnumBookingStatusFilter<"Booking"> | $Enums.BookingStatus
     patientName?: StringNullableFilter<"Booking"> | string | null
@@ -17819,6 +17954,7 @@ export namespace Prisma {
   export type BookingCreateWithoutClinicInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -17842,6 +17978,7 @@ export namespace Prisma {
   export type BookingUncheckedCreateWithoutClinicInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -18270,6 +18407,7 @@ export namespace Prisma {
   export type BookingCreateWithoutServingInInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -18293,6 +18431,7 @@ export namespace Prisma {
   export type BookingUncheckedCreateWithoutServingInInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -18321,6 +18460,7 @@ export namespace Prisma {
   export type BookingCreateWithoutSessionInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -18344,6 +18484,7 @@ export namespace Prisma {
   export type BookingUncheckedCreateWithoutSessionInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -18423,6 +18564,7 @@ export namespace Prisma {
   export type BookingUpdateWithoutServingInInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -18446,6 +18588,7 @@ export namespace Prisma {
   export type BookingUncheckedUpdateWithoutServingInInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -18639,8 +18782,9 @@ export namespace Prisma {
     amount: number
     currency?: string
     status?: $Enums.PaymentStatus
-    razorpayOrderId: string
-    razorpayPaymentId?: string | null
+    cashfreeOrderId: string
+    cashfreeSessionId?: string | null
+    cashfreePaymentId?: string | null
     method?: string | null
     failureReason?: string | null
     gatewayFee?: number
@@ -18657,8 +18801,9 @@ export namespace Prisma {
     amount: number
     currency?: string
     status?: $Enums.PaymentStatus
-    razorpayOrderId: string
-    razorpayPaymentId?: string | null
+    cashfreeOrderId: string
+    cashfreeSessionId?: string | null
+    cashfreePaymentId?: string | null
     method?: string | null
     failureReason?: string | null
     gatewayFee?: number
@@ -18867,8 +19012,9 @@ export namespace Prisma {
     amount?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     status?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
-    razorpayOrderId?: StringFieldUpdateOperationsInput | string
-    razorpayPaymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreeOrderId?: StringFieldUpdateOperationsInput | string
+    cashfreeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreePaymentId?: NullableStringFieldUpdateOperationsInput | string | null
     method?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
     gatewayFee?: IntFieldUpdateOperationsInput | number
@@ -18885,8 +19031,9 @@ export namespace Prisma {
     amount?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     status?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
-    razorpayOrderId?: StringFieldUpdateOperationsInput | string
-    razorpayPaymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreeOrderId?: StringFieldUpdateOperationsInput | string
+    cashfreeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreePaymentId?: NullableStringFieldUpdateOperationsInput | string | null
     method?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
     gatewayFee?: IntFieldUpdateOperationsInput | number
@@ -18901,6 +19048,7 @@ export namespace Prisma {
   export type BookingCreateWithoutPaymentInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -18924,6 +19072,7 @@ export namespace Prisma {
   export type BookingUncheckedCreateWithoutPaymentInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -18955,7 +19104,7 @@ export namespace Prisma {
     deductedFee?: number
     reason: $Enums.RefundReason
     status?: $Enums.RefundStatus
-    razorpayRefundId?: string | null
+    cashfreeRefundId?: string | null
     failureReason?: string | null
     createdAt?: Date | string
     processedAt?: Date | string | null
@@ -18967,7 +19116,7 @@ export namespace Prisma {
     deductedFee?: number
     reason: $Enums.RefundReason
     status?: $Enums.RefundStatus
-    razorpayRefundId?: string | null
+    cashfreeRefundId?: string | null
     failureReason?: string | null
     createdAt?: Date | string
     processedAt?: Date | string | null
@@ -18997,6 +19146,7 @@ export namespace Prisma {
   export type BookingUpdateWithoutPaymentInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19020,6 +19170,7 @@ export namespace Prisma {
   export type BookingUncheckedUpdateWithoutPaymentInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19066,7 +19217,7 @@ export namespace Prisma {
     deductedFee?: IntFilter<"Refund"> | number
     reason?: EnumRefundReasonFilter<"Refund"> | $Enums.RefundReason
     status?: EnumRefundStatusFilter<"Refund"> | $Enums.RefundStatus
-    razorpayRefundId?: StringNullableFilter<"Refund"> | string | null
+    cashfreeRefundId?: StringNullableFilter<"Refund"> | string | null
     failureReason?: StringNullableFilter<"Refund"> | string | null
     createdAt?: DateTimeFilter<"Refund"> | Date | string
     processedAt?: DateTimeNullableFilter<"Refund"> | Date | string | null
@@ -19077,8 +19228,9 @@ export namespace Prisma {
     amount: number
     currency?: string
     status?: $Enums.PaymentStatus
-    razorpayOrderId: string
-    razorpayPaymentId?: string | null
+    cashfreeOrderId: string
+    cashfreeSessionId?: string | null
+    cashfreePaymentId?: string | null
     method?: string | null
     failureReason?: string | null
     gatewayFee?: number
@@ -19096,8 +19248,9 @@ export namespace Prisma {
     amount: number
     currency?: string
     status?: $Enums.PaymentStatus
-    razorpayOrderId: string
-    razorpayPaymentId?: string | null
+    cashfreeOrderId: string
+    cashfreeSessionId?: string | null
+    cashfreePaymentId?: string | null
     method?: string | null
     failureReason?: string | null
     gatewayFee?: number
@@ -19129,8 +19282,9 @@ export namespace Prisma {
     amount?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     status?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
-    razorpayOrderId?: StringFieldUpdateOperationsInput | string
-    razorpayPaymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreeOrderId?: StringFieldUpdateOperationsInput | string
+    cashfreeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreePaymentId?: NullableStringFieldUpdateOperationsInput | string | null
     method?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
     gatewayFee?: IntFieldUpdateOperationsInput | number
@@ -19148,8 +19302,9 @@ export namespace Prisma {
     amount?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     status?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
-    razorpayOrderId?: StringFieldUpdateOperationsInput | string
-    razorpayPaymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreeOrderId?: StringFieldUpdateOperationsInput | string
+    cashfreeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreePaymentId?: NullableStringFieldUpdateOperationsInput | string | null
     method?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
     gatewayFee?: IntFieldUpdateOperationsInput | number
@@ -19163,6 +19318,7 @@ export namespace Prisma {
   export type BookingCreateManyUserInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -19184,6 +19340,7 @@ export namespace Prisma {
   export type BookingUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19207,6 +19364,7 @@ export namespace Prisma {
   export type BookingUncheckedUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19230,6 +19388,7 @@ export namespace Prisma {
   export type BookingUncheckedUpdateManyWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19261,6 +19420,7 @@ export namespace Prisma {
   export type BookingCreateManyClinicInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -19316,6 +19476,7 @@ export namespace Prisma {
   export type BookingUpdateWithoutClinicInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19339,6 +19500,7 @@ export namespace Prisma {
   export type BookingUncheckedUpdateWithoutClinicInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19362,6 +19524,7 @@ export namespace Prisma {
   export type BookingUncheckedUpdateManyWithoutClinicInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19493,6 +19656,7 @@ export namespace Prisma {
   export type BookingCreateManySessionInput = {
     id?: string
     tokenNumber: number
+    activeTokenNumber?: number | null
     queuePosition: number
     status?: $Enums.BookingStatus
     patientName?: string | null
@@ -19514,6 +19678,7 @@ export namespace Prisma {
   export type BookingUpdateWithoutSessionInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19537,6 +19702,7 @@ export namespace Prisma {
   export type BookingUncheckedUpdateWithoutSessionInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19560,6 +19726,7 @@ export namespace Prisma {
   export type BookingUncheckedUpdateManyWithoutSessionInput = {
     id?: StringFieldUpdateOperationsInput | string
     tokenNumber?: IntFieldUpdateOperationsInput | number
+    activeTokenNumber?: NullableIntFieldUpdateOperationsInput | number | null
     queuePosition?: IntFieldUpdateOperationsInput | number
     status?: EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
     patientName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19584,7 +19751,7 @@ export namespace Prisma {
     deductedFee?: number
     reason: $Enums.RefundReason
     status?: $Enums.RefundStatus
-    razorpayRefundId?: string | null
+    cashfreeRefundId?: string | null
     failureReason?: string | null
     createdAt?: Date | string
     processedAt?: Date | string | null
@@ -19596,7 +19763,7 @@ export namespace Prisma {
     deductedFee?: IntFieldUpdateOperationsInput | number
     reason?: EnumRefundReasonFieldUpdateOperationsInput | $Enums.RefundReason
     status?: EnumRefundStatusFieldUpdateOperationsInput | $Enums.RefundStatus
-    razorpayRefundId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreeRefundId?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -19608,7 +19775,7 @@ export namespace Prisma {
     deductedFee?: IntFieldUpdateOperationsInput | number
     reason?: EnumRefundReasonFieldUpdateOperationsInput | $Enums.RefundReason
     status?: EnumRefundStatusFieldUpdateOperationsInput | $Enums.RefundStatus
-    razorpayRefundId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreeRefundId?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -19620,7 +19787,7 @@ export namespace Prisma {
     deductedFee?: IntFieldUpdateOperationsInput | number
     reason?: EnumRefundReasonFieldUpdateOperationsInput | $Enums.RefundReason
     status?: EnumRefundStatusFieldUpdateOperationsInput | $Enums.RefundStatus
-    razorpayRefundId?: NullableStringFieldUpdateOperationsInput | string | null
+    cashfreeRefundId?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

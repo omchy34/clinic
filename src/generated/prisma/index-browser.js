@@ -187,6 +187,7 @@ exports.Prisma.DoctorSessionScalarFieldEnum = {
 exports.Prisma.BookingScalarFieldEnum = {
   id: 'id',
   tokenNumber: 'tokenNumber',
+  activeTokenNumber: 'activeTokenNumber',
   queuePosition: 'queuePosition',
   status: 'status',
   patientName: 'patientName',
@@ -212,8 +213,9 @@ exports.Prisma.PaymentScalarFieldEnum = {
   amount: 'amount',
   currency: 'currency',
   status: 'status',
-  razorpayOrderId: 'razorpayOrderId',
-  razorpayPaymentId: 'razorpayPaymentId',
+  cashfreeOrderId: 'cashfreeOrderId',
+  cashfreeSessionId: 'cashfreeSessionId',
+  cashfreePaymentId: 'cashfreePaymentId',
   method: 'method',
   failureReason: 'failureReason',
   gatewayFee: 'gatewayFee',
@@ -231,7 +233,7 @@ exports.Prisma.RefundScalarFieldEnum = {
   deductedFee: 'deductedFee',
   reason: 'reason',
   status: 'status',
-  razorpayRefundId: 'razorpayRefundId',
+  cashfreeRefundId: 'cashfreeRefundId',
   failureReason: 'failureReason',
   createdAt: 'createdAt',
   processedAt: 'processedAt'

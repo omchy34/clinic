@@ -31,7 +31,7 @@ model Clinic {
   // All booking dates and closing times are interpreted in this time zone
   timezone String @default("Asia/Kolkata")
 
-  // User khud cancel kare to: (amount - Razorpay fee - GST) ka kitna % wapas.
+  // User khud cancel kare to: (amount - gateway fee - GST) ka kitna % wapas.
   // Clinic/session cancel par hamesha poora amount refund hota hai.
   userCancelRefundPercent Int @default(100)
 
@@ -46,8 +46,8 @@ model Clinic {
 
 enum BookingStatus {
   PENDING_PAYMENT
-  CONFIRMED       // paid (or free), waiting in the queue
-  SKIPPED         // clinic skipped this token; out of the line until "Back to queue"
+  CONFIRMED // paid (or free), waiting in the queue
+  SKIPPED // clinic skipped this token; out of the line until "Back to queue"
   SERVING
   COMPLETED
   CANCELLED
@@ -56,8 +56,8 @@ enum BookingStatus {
 
 enum QueueStatus {
   NOT_STARTED // "Queue Not Started" / "Waiting for Doctor"
-  ACTIVE      // clinic clicked "Start Token"
-  ENDED       // session finished
+  ACTIVE // clinic clicked "Start Token"
+  ENDED // session finished
 }
 
 enum CancelledBy {
@@ -74,8 +74,8 @@ enum RefundReason {
 }
 
 enum RefundStatus {
-  INITIATED // DB me row bani, Razorpay call abhi nahi hui/chal rahi hai
-  PENDING   // Razorpay ne accept kiya
+  INITIATED // DB me row bani, Cashfree call abhi nahi hui/chal rahi hai
+  PENDING // Cashfree ne accept kiya
   PROCESSED
   FAILED
 }
@@ -101,11 +101,11 @@ enum Weekday {
 // The specialty list is not a database table. It lives in src/data/specialties.json
 // and Doctor only stores its slug (for example "dentist").
 model Doctor {
-  id            String           @id @default(cuid())
+  id            String  @id @default(cuid())
   name          String
   image         String?
   description   String?
-  isActive      Boolean          @default(true)
+  isActive      Boolean @default(true)
   specialtySlug String
 
   clinicId  String
@@ -181,12 +181,13 @@ model DoctorSession {
 }
 
 model Booking {
-  id            String        @id @default(cuid())
-  tokenNumber   Int // never changes, used for identification and history
-  queuePosition Int // order in the queue, changes only when a token is skipped
-  status        BookingStatus @default(PENDING_PAYMENT)
-  patientName   String?
-  patientPhone  String
+  id                String        @id @default(cuid())
+  tokenNumber       Int // never changes, used for identification and history
+  activeTokenNumber Int? // zinda token ka number. Expire/fail hone par null, taaki number dobara mil sake
+  queuePosition     Int // order in the queue, changes only when a token is skipped
+  status            BookingStatus @default(PENDING_PAYMENT)
+  patientName       String?
+  patientPhone      String
 
   // Booking ke time ka price (paise). Baad me price badle to ye nahi badlega.
   amount    Int       @default(0)
@@ -215,6 +216,7 @@ model Booking {
   cancelReason String?
 
   @@unique([sessionId, tokenNumber])
+  @@unique([sessionId, activeTokenNumber])
   @@index([userId])
   @@index([clinicId, status])
   @@index([sessionId, status, queuePosition])
@@ -230,12 +232,14 @@ model Payment {
   currency String        @default("INR")
   status   PaymentStatus @default(CREATED)
 
-  razorpayOrderId   String  @unique
-  razorpayPaymentId String? @unique
+  cashfreeOrderId   String  @unique // hamara order id (tok_<bookingId>)
+  cashfreeSessionId String? // payment_session_id, popup kholne aur adhoori payment resume ke liye
+  cashfreePaymentId String? @unique // cf_payment_id
   method            String? // upi / card / netbanking
   failureReason     String?
 
-  // Razorpay ka commission (paise). payment.captured webhook ke payload se aata hai.
+  // Gateway ka commission (paise). Cashfree fee nahi bhejta, isliye
+  // CASHFREE_FEE_PERCENT se estimate karke bharte hain.
   // User cancel par refund = amount - gatewayFee - gatewayTax (phir percent).
   gatewayFee Int @default(0)
   gatewayTax Int @default(0)
@@ -259,7 +263,7 @@ model Refund {
   deductedFee      Int          @default(0) // fee + GST jo kaati gayi (record ke liye)
   reason           RefundReason
   status           RefundStatus @default(INITIATED)
-  razorpayRefundId String?      @unique
+  cashfreeRefundId String?      @unique // Cashfree ko bheja hua refund_id (retry pe naya)
   failureReason    String?
 
   createdAt   DateTime  @default(now())
@@ -268,9 +272,9 @@ model Refund {
   @@index([paymentId])
 }
 
-// Razorpay webhook duplicate bheje to dobara process na ho
+// Cashfree webhook duplicate bheje to dobara process na ho
 model WebhookEvent {
-  id        String   @id // x-razorpay-event-id header
+  id        String   @id // "cf:<event type>:<id>:<status>" (webhook route khud banata hai)
   event     String
   createdAt DateTime @default(now())
 }
@@ -280,5 +284,5 @@ model PlatformSetting {
   id         String   @id @default("global")
   tokenPrice Int      @default(2000) // paise me. ₹20 = 2000
   updatedAt  DateTime @updatedAt
-  updatedBy  String?  // admin ka user id
+  updatedBy  String? // admin ka user id
 }

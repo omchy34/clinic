@@ -131,7 +131,7 @@ export default function AdminSettingsPage() {
                 />
               </div>
               <span className="mt-1.5 block text-xs text-slate-500">
-                Minimum ₹1. Enter 0 to make tokens free. Razorpay deducts its own commission from each payment.
+                Minimum ₹1. Enter 0 to make tokens free. The payment gateway deducts its own commission from each payment.
               </span>
             </label>
 

@@ -1,9 +1,8 @@
 // src/lib/refund.ts
-// Server-only: refund ka sara hisaab aur Razorpay ko refund bhejna.
-// Amounts sab paise me.
+// Server-only: refund ka hisaab aur Cashfree ko refund bhejna. Amounts sab paise me.
 
 import { prisma } from "@/lib/prisma";
-import { razorpay } from "@/lib/razorpay";
+import { createRefund, estimateFee, CashfreeError } from "@/lib/cashfree";
 
 export type RefundReasonT =
   | "USER_CANCELLED"
@@ -18,7 +17,6 @@ type PaymentRow = {
   gatewayFee: number;
   gatewayTax: number;
   refundedAmount: number;
-  razorpayPaymentId: string | null;
   method: string | null;
 };
 
@@ -26,11 +24,9 @@ type Result =
   | { ok: true; refundId?: string; refundAmount?: number }
   | { ok: false; error: string };
 
-/* ---------------------------------------------------------------- */
-/* 1. Refund kitna hoga                                             */
-/* ---------------------------------------------------------------- */
+/* 1. Refund kitna hoga */
 
-// User cancel kare: (amount - Razorpay fee - GST) ka userCancelRefundPercent %.
+// User cancel kare: (amount - fee - GST) ka userCancelRefundPercent %.
 // Clinic / session / system ki wajah se: poora amount.
 export function calcRefund(
   p: Pick<PaymentRow, "amount" | "gatewayFee" | "gatewayTax" | "refundedAmount">,
@@ -50,27 +46,16 @@ export function calcRefund(
   return { refund, deductedFee: p.amount - refund };
 }
 
-/* ---------------------------------------------------------------- */
-/* 2. Helpers                                                       */
-/* ---------------------------------------------------------------- */
+/* 2. Helpers */
 
-// Fee DB me nahi hai to Razorpay se lao, warna user cancel par poora amount refund ho jayega
+// Fee DB me nahi hai to estimate bhar do (Cashfree fee nahi bhejta)
 export async function ensureFee(p: PaymentRow): Promise<PaymentRow> {
-  if (p.gatewayFee > 0 || p.gatewayTax > 0 || !p.razorpayPaymentId) return p;
-  try {
-    const rp: any = await razorpay.payments.fetch(p.razorpayPaymentId);
-    return await prisma.payment.update({
-      where: { id: p.id },
-      data: {
-        gatewayFee: rp.fee ?? 0,
-        gatewayTax: rp.tax ?? 0,
-        method: rp.method ?? p.method,
-      },
-    });
-  } catch (e) {
-    console.error("ensureFee: could not fetch payment from Razorpay", e);
-    return p;
-  }
+  if (p.gatewayFee > 0 || p.gatewayTax > 0) return p;
+  const { fee, tax } = estimateFee(p.amount);
+  return prisma.payment.update({
+    where: { id: p.id },
+    data: { gatewayFee: fee, gatewayTax: tax },
+  });
 }
 
 async function syncPaymentStatus(tx: any, paymentId: string) {
@@ -81,38 +66,37 @@ async function syncPaymentStatus(tx: any, paymentId: string) {
   if (status !== p.status) await tx.payment.update({ where: { id: paymentId }, data: { status } });
 }
 
-/* ---------------------------------------------------------------- */
-/* 3. Razorpay ko refund bhejna                                     */
-/* ---------------------------------------------------------------- */
+/* 3. Cashfree ko refund bhejna */
 
-async function sendToRazorpay(refundId: string): Promise<Result> {
+async function sendToCashfree(refundId: string): Promise<Result> {
   const r = await prisma.refund.findUnique({ where: { id: refundId }, include: { payment: true } });
   if (!r || r.status !== "INITIATED") return { ok: false, error: "REFUND_NOT_PENDING_SEND" };
-  if (!r.payment.razorpayPaymentId) return { ok: false, error: "NO_PAYMENT_ID" };
+
+  // Cashfree har refund ka unique id maangta hai. Pehli baar Refund.id, retry pe naya id.
+  const sentId = r.cashfreeRefundId ?? r.id;
 
   try {
-    const res: any = await razorpay.payments.refund(r.payment.razorpayPaymentId, {
-      amount: r.amount,
-      speed: "normal",
-      receipt: r.id, // webhook me isi se refund match hoga
-      notes: { refundId: r.id, bookingId: r.payment.bookingId },
+    await createRefund(r.payment.cashfreeOrderId, {
+      refundId: sentId,
+      amountPaise: r.amount,
+      note: r.reason,
     });
 
     // webhook pehle aa gaya ho to status PROCESSED ho chuka hoga, usse overwrite nahi karenge
     await prisma.refund.updateMany({
       where: { id: r.id, status: "INITIATED" },
-      data: { status: "PENDING", razorpayRefundId: res.id },
+      data: { status: "PENDING", cashfreeRefundId: sentId },
     });
     return { ok: true, refundId: r.id, refundAmount: r.amount };
-  } catch (e: any) {
-    const msg = e?.error?.description ?? e?.message ?? "Razorpay refund failed";
-    console.error("sendToRazorpay failed", e);
+  } catch (e) {
+    const msg = e instanceof CashfreeError ? e.message : "Cashfree refund failed";
+    console.error("sendToCashfree failed", e);
     await failRefund(r.id, msg);
     return { ok: false, error: msg };
   }
 }
 
-// Refund fail: reserve kiya hua amount wapas free karo, status FAILED (retryRefund se dobara ho sakta hai)
+// Refund fail: reserve kiya hua amount wapas free karo, status FAILED
 async function failRefund(refundId: string, reason: string) {
   await prisma.$transaction(async (tx) => {
     const upd = await tx.refund.updateMany({
@@ -129,16 +113,14 @@ async function failRefund(refundId: string, reason: string) {
   });
 }
 
-/* ---------------------------------------------------------------- */
-/* 4. Booking cancel (user / clinic)                                */
-/* ---------------------------------------------------------------- */
+/* 4. Booking cancel (user / clinic) */
 
 const CANCELLABLE = ["PENDING_PAYMENT", "CONFIRMED"] as const;
 
 export async function cancelBooking(opts: {
   bookingId: string;
   actor: ActorT;
-  userId?: string; // actor USER ho to zaroori (ownership check)
+  userId?: string;
   reason?: RefundReasonT;
   note?: string;
 }): Promise<Result> {
@@ -183,13 +165,13 @@ export async function cancelBooking(opts: {
   const payment = await ensureFee(booking.payment);
   const { refund, deductedFee } = calcRefund(payment, reason, booking.clinic.userCancelRefundPercent);
 
-  // Booking cancel + refund row + amount reserve: ek hi transaction (double refund nahi hoga)
+  // Booking cancel + refund row + amount reserve: ek hi transaction
   const refundId = await prisma.$transaction(async (tx) => {
     const upd = await tx.booking.updateMany({
       where: { id: bookingId, status: { in: [...CANCELLABLE] } },
       data: cancelData,
     });
-    if (upd.count === 0) return null; // kisi aur request ne pehle cancel kar diya
+    if (upd.count === 0) return null;
 
     await tx.doctorSession.update({
       where: { id: booking.sessionId },
@@ -212,14 +194,12 @@ export async function cancelBooking(opts: {
   if (refundId === null) return { ok: false, error: "ALREADY_CANCELLED" };
   if (refundId === "") return { ok: true, refundAmount: 0 };
 
-  const sent = await sendToRazorpay(refundId);
-  // Token cancel ho chuka hai. Razorpay call fail hua to Refund row FAILED rahegi, retryRefund se dobara chalegi.
+  const sent = await sendToCashfree(refundId);
+  // Token cancel ho chuka hai. Cashfree call fail hua to Refund row FAILED rahegi, retryRefund se dobara chalegi.
   return sent.ok ? sent : { ok: true, refundId, refundAmount: refund };
 }
 
-/* ---------------------------------------------------------------- */
-/* 5. Poora session cancel (clinic): sab ko full refund             */
-/* ---------------------------------------------------------------- */
+/* 5. Poora session cancel (clinic): sab ko full refund */
 
 export async function cancelSession(sessionId: string, note = "Session cancelled by clinic") {
   await prisma.doctorSession.update({
@@ -245,10 +225,7 @@ export async function cancelSession(sessionId: string, note = "Session cancelled
   return { total: bookings.length, cancelled };
 }
 
-/* ---------------------------------------------------------------- */
-/* 6. Late payment: paisa kata par booking expire/cancel ho chuki   */
-/*    Webhook (payment.captured) se call hoga. Poora refund.        */
-/* ---------------------------------------------------------------- */
+/* 6. Late payment: paisa kata par booking expire/cancel ho chuki. Poora refund. */
 
 export async function refundLatePayment(args: {
   orderId: string;
@@ -257,7 +234,7 @@ export async function refundLatePayment(args: {
   tax?: number;
   method?: string;
 }): Promise<Result> {
-  const payment = await prisma.payment.findUnique({ where: { razorpayOrderId: args.orderId } });
+  const payment = await prisma.payment.findUnique({ where: { cashfreeOrderId: args.orderId } });
   if (!payment) return { ok: false, error: "PAYMENT_NOT_FOUND" };
 
   const refundId = await prisma.$transaction(async (tx) => {
@@ -265,14 +242,14 @@ export async function refundLatePayment(args: {
       where: { id: payment.id, status: { in: ["CREATED", "FAILED"] } },
       data: {
         status: "PAID",
-        razorpayPaymentId: args.paymentId,
+        cashfreePaymentId: args.paymentId,
         gatewayFee: args.fee ?? 0,
         gatewayTax: args.tax ?? 0,
         method: args.method,
         paidAt: new Date(),
       },
     });
-    if (upd.count !== 1) return null; // webhook duplicate
+    if (upd.count !== 1) return null; // duplicate
 
     const r = await tx.refund.create({
       data: { paymentId: payment.id, amount: payment.amount, reason: "BOOKING_UNAVAILABLE" },
@@ -286,22 +263,25 @@ export async function refundLatePayment(args: {
   });
 
   if (!refundId) return { ok: true };
-  return sendToRazorpay(refundId);
+  return sendToCashfree(refundId);
 }
 
-/* ---------------------------------------------------------------- */
-/* 7. Failed refund dobara try (admin button / cron)                */
-/* ---------------------------------------------------------------- */
+/* 7. Failed refund dobara try (admin button / cron) */
 
 export async function retryRefund(refundId: string): Promise<Result> {
   const ok = await prisma.$transaction(async (tx) => {
     const r = await tx.refund.findUnique({ where: { id: refundId }, include: { payment: true } });
     if (!r || r.status !== "FAILED") return false;
-    if (r.payment.amount - r.payment.refundedAmount < r.amount) return false; // beech me kuch aur refund ho gaya
+    if (r.payment.amount - r.payment.refundedAmount < r.amount) return false;
 
     const upd = await tx.refund.updateMany({
       where: { id: refundId, status: "FAILED" },
-      data: { status: "INITIATED", failureReason: null, razorpayRefundId: null },
+      // Cashfree me refund_id dobara use nahi hota, isliye retry ka naya id
+      data: {
+        status: "INITIATED",
+        failureReason: null,
+        cashfreeRefundId: `${r.id}_${Date.now().toString(36)}`,
+      },
     });
     if (upd.count !== 1) return false;
 
@@ -314,30 +294,31 @@ export async function retryRefund(refundId: string): Promise<Result> {
   });
 
   if (!ok) return { ok: false, error: "CANNOT_RETRY" };
-  return sendToRazorpay(refundId);
+  return sendToCashfree(refundId);
 }
 
-/* ---------------------------------------------------------------- */
-/* 8. Webhook: refund.processed / refund.failed                     */
-/* ---------------------------------------------------------------- */
+/* 8. Webhook: refund status */
 
-export async function handleRefundWebhook(
-  event: "refund.processed" | "refund.failed",
-  entity: { id: string; receipt?: string | null }
-) {
+export async function handleRefundWebhook(entity: {
+  refund_id: string;
+  refund_status: string;
+  status_description?: string;
+}) {
   const refund = await prisma.refund.findFirst({
-    where: {
-      OR: [{ razorpayRefundId: entity.id }, ...(entity.receipt ? [{ id: entity.receipt }] : [])],
-    },
+    where: { OR: [{ cashfreeRefundId: entity.refund_id }, { id: entity.refund_id }] },
   });
   if (!refund) return;
 
-  if (event === "refund.processed") {
+  // Purane attempt ka late webhook naye attempt ko galat status na de
+  if (entity.refund_id !== (refund.cashfreeRefundId ?? refund.id)) return;
+
+  if (entity.refund_status === "SUCCESS") {
     await prisma.refund.updateMany({
       where: { id: refund.id, status: { in: ["INITIATED", "PENDING"] } },
-      data: { status: "PROCESSED", processedAt: new Date(), razorpayRefundId: entity.id },
+      data: { status: "PROCESSED", processedAt: new Date() },
     });
-  } else {
-    await failRefund(refund.id, "Razorpay reported refund failed");
+  } else if (entity.refund_status === "FAILED" || entity.refund_status === "CANCELLED") {
+    await failRefund(refund.id, entity.status_description ?? "Cashfree reported refund failed");
   }
+  // PENDING / ONHOLD: kuch nahi karna
 }

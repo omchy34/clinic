@@ -265,7 +265,7 @@ export default function AdminPaymentsPage() {
             <Card label="Tokens booked" value={String(s.tokens)} note={`${s.paidTokens} paid, ${s.cancelled} cancelled`} />
             <Card label="Money received" value={inr(s.collected)} />
             <Card label="Refunded" value={inr(s.refunded)} />
-            <Card label="Razorpay fees" value={inr(s.fees)} note="Fee + GST" />
+            <Card label="Gateway fees" value={inr(s.fees)} note="Estimated fee + GST" />
             <Card label="Net earning" value={inr(s.net)} note="Received - refunded - fees" />
           </div>
 

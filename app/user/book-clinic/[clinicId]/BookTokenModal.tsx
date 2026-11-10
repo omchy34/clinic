@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
 import { useAuth } from "@clerk/nextjs";
+import { load as loadCashfree } from "@cashfreepayments/cashfree-js";
 import { cleanPhone, isValidIndianPhone } from "@/lib/patient-booking";
 import { CheckCircle2, Clock, Loader2, X } from "lucide-react";
 import { addDays, type BookingStatus } from "@/lib/booking";
@@ -20,37 +21,17 @@ import {
 } from "@/lib/patient-booking";
 import Reveal from "@/components/Reveal";
 
-declare global {
-  interface Window {
-    Razorpay?: any;
-  }
-}
-
 type BookResponse = BookedToken & {
   free: boolean;
-  payment?: { orderId: string; amount: number; keyId: string };
+  payment?: {
+    orderId: string;
+    paymentSessionId: string;
+    amount: number;
+    mode: "sandbox" | "production";
+  };
 };
 
-type RzpResponse = {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
-};
-
-type Outcome = { kind: "success"; response: RzpResponse } | { kind: "dismissed"; failed: boolean };
-
-// Razorpay ki script sirf tab load hoti hai jab paid token book ho
-function loadRazorpay(): Promise<boolean> {
-  if (typeof window === "undefined") return Promise.resolve(false);
-  if (window.Razorpay) return Promise.resolve(true);
-  return new Promise((resolve) => {
-    const s = document.createElement("script");
-    s.src = "https://checkout.razorpay.com/v1/checkout.js";
-    s.onload = () => resolve(true);
-    s.onerror = () => resolve(false);
-    document.body.appendChild(s);
-  });
-}
+type VerifyResponse = { ok: boolean; status?: "PENDING" | "FAILED" };
 
 // Glassmorphism tokens
 const ring = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
@@ -115,7 +96,7 @@ export default function BookTokenModal({
 }) {
   const { getToken } = useAuth();
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const hidingRef = useRef(false); // Razorpay ke liye dialog jaan bujh ke band kiya hai
+  const hidingRef = useRef(false); // Cashfree popup ke liye dialog jaan bujh ke band kiya hai
 
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -169,28 +150,19 @@ export default function BookTokenModal({
     if (d && !d.open) d.showModal();
   };
 
-  // Razorpay popup kholta hai. Success ya popup band hone par resolve hota hai.
-  function openCheckout(data: BookResponse & { payment: NonNullable<BookResponse["payment"]> }) {
-    return new Promise<Outcome>((resolve) => {
-      let failed = false;
-      const rzp = new window.Razorpay({
-        key: data.payment.keyId,
-        order_id: data.payment.orderId,
-        amount: data.payment.amount,
-        currency: "INR",
-        name: "Token booking",
-        description: `${doctor.name} - Token #${data.tokenNumber}`,
-        theme: { color: "#4f46e5" },
-        handler: (response: RzpResponse) => resolve({ kind: "success", response }),
-        modal: { ondismiss: () => resolve({ kind: "dismissed", failed }) },
-      });
-      rzp.on("payment.failed", () => {
-        failed = true; // popup khula rehta hai, user wahin retry kar sakta hai
-      });
+  // Cashfree popup kholta hai. Popup band hone par resolve hota hai (success ho ya na ho).
+  async function openCheckout(payment: {
+    paymentSessionId: string;
+    mode: "sandbox" | "production";
+  }) {
+    const cashfree = await loadCashfree({ mode: payment.mode });
+    if (!cashfree) throw new Error("Cashfree SDK did not load");
 
-      hidingRef.current = true; // dialog band hoga, par parent ko "closed" mat batao
-      dialogRef.current?.close();
-      rzp.open();
+    hidingRef.current = true; // dialog band hoga, par parent ko "closed" mat batao
+    dialogRef.current?.close();
+    await cashfree.checkout({
+      paymentSessionId: payment.paymentSessionId,
+      redirectTarget: "_modal",
     });
   }
 
@@ -215,28 +187,33 @@ export default function BookTokenModal({
         return;
       }
 
-      // Paid session: pehle payment
-      if (!(await loadRazorpay())) {
+      // Paid session: Cashfree popup
+      try {
+        await openCheckout(data.payment);
+      } catch (e) {
+        console.error(e);
+        reopenDialog();
         setSubmitError("Could not open the payment window. Check your internet and try again.");
         return;
       }
-
-      const outcome = await openCheckout({ ...data, payment: data.payment });
       reopenDialog();
 
-      if (outcome.kind === "dismissed") {
-        setSubmitError(
-          outcome.failed
-            ? "Payment failed. Your token is held for 10 minutes, press the button to try again."
-            : "Payment was not completed. Your token is held for 10 minutes, press the button to pay."
-        );
-        return;
-      }
-
-      // Payment ho gayi: server pe verify karo, tab token confirm hoga
+      // Popup band hone ka matlab success nahi hota. Hamesha server se asli status pucho.
       try {
-        await axios.post("/api/razorpay/verify", outcome.response, await authHeader());
-        setConfirmed({ ...token, ...when });
+        const { data: v } = await axios.post<VerifyResponse>(
+          "/api/cashfree/verify",
+          { orderId: data.payment.orderId },
+          await authHeader()
+        );
+        if (v.ok) {
+          setConfirmed({ ...token, ...when });
+        } else {
+          setSubmitError(
+            v.status === "FAILED"
+              ? "Payment failed. Your token is held for 10 minutes, press the button to try again."
+              : "Payment was not completed. If money was deducted, your token will be confirmed automatically in a minute. Otherwise press the button to pay."
+          );
+        }
       } catch (err) {
         setSubmitError(
           axios.isAxiosError(err) && err.response
@@ -468,7 +445,7 @@ export default function BookTokenModal({
       ref={dialogRef}
       onClose={() => {
         if (hidingRef.current) {
-          hidingRef.current = false; // Razorpay ke liye hide hua tha, parent ko mat batao
+          hidingRef.current = false; // Cashfree popup ke liye hide hua tha, parent ko mat batao
           return;
         }
         onClose();
